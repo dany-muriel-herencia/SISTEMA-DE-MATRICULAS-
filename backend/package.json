@@ -1,0 +1,32 @@
+{
+  "name": "sistema-matricula-unjbg-backend",
+  "version": "1.0.0",
+  "description": "Backend API para el Sistema de Matrícula UNJBG con arquitectura limpia y SQL directo sin ORM",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test:db": "node src/database/test-connection.js"
+  },
+  "keywords": [
+    "unjbg",
+    "matricula",
+    "clean-architecture",
+    "no-orm",
+    "mysql2",
+    "express"
+  ],
+  "author": "Equipo de Desarrollo UNJBG",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  },
+  "devDependencies": {
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.9"
+  }
+}

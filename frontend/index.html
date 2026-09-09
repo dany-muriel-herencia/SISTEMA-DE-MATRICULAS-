@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Matrícula UNJBG</title>
+  <meta name="description" content="Plataforma académica y sistema de matrícula de la Universidad Nacional Jorge Basadre Grohmann">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Barra de Navegación Superior -->
+    <header class="navbar" id="main-header">
+      <div class="nav-brand">
+        <div class="brand-logo">UNJBG</div>
+        <div class="brand-info">
+          <span class="brand-title">Sistema de Matrícula</span>
+          <span class="brand-subtitle">Universidad Nacional Jorge Basadre Grohmann</span>
+        </div>
+      </div>
+      <div class="nav-status-badge" id="system-status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text" id="status-label">Verificando API...</span>
+      </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="main-container">
+      <section class="hero-card">
+        <div class="hero-badge">Base Técnica & Arquitectura Inicial</div>
+        <h1 class="hero-title">Sistema de Matrícula <span class="gradient-text">UNJBG</span></h1>
+        <p class="hero-description">
+          Arquitectura en capas desacopladas, modular y con acceso a datos mediante <strong>SQL explícito (sin ORM)</strong>.
+        </p>
+
+        <!-- Tarjetas de Diagnóstico y Estado -->
+        <div class="grid-cards">
+          <!-- Tarjeta API Backend -->
+          <div class="glass-card" id="card-backend">
+            <div class="card-icon">⚡</div>
+            <h2 class="card-title">Backend REST API</h2>
+            <p class="card-description">Node.js + Express con Clean Architecture y manejo centralizado de errores.</p>
+            <div class="card-metric" id="backend-metric">Puerto 3000</div>
+          </div>
+
+          <!-- Tarjeta Base de Datos -->
+          <div class="glass-card" id="card-database">
+            <div class="card-icon">🗄️</div>
+            <h2 class="card-title">Persistencia Local</h2>
+            <p class="card-description">MySQL 8.x nativo con Pool de conexiones (`mysql2/promise`) y transacciones seguras.</p>
+            <div class="card-metric" id="db-metric">Consultando...</div>
+          </div>
+
+          <!-- Tarjeta Módulos -->
+          <div class="glass-card" id="card-modules">
+            <div class="card-icon">🧩</div>
+            <h2 class="card-title">Módulos del Sistema</h2>
+            <p class="card-description">Usuarios, Estudiantes, Cursos, Periodos, Secciones y Matrícula.</p>
+            <div class="card-metric">7 Módulos Listos</div>
+          </div>
+        </div>
+
+        <!-- Consola de Diagnóstico en Tiempo Real -->
+        <div class="terminal-box">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="terminal-title">Diagnóstico de Salud (/api/v1/health)</span>
+          </div>
+          <pre class="terminal-body" id="health-output">Conectando con el backend local en http://localhost:3000/api/v1/health ...</pre>
+        </div>
+      </section>
+    </main>
+
+    <!-- Pie de Página -->
+    <footer class="main-footer">
+      <p>© 2026 Universidad Nacional Jorge Basadre Grohmann - Tacna, Perú. Arquitectura de Software.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
