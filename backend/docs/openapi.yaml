@@ -1,0 +1,486 @@
+openapi: 3.1.2
+info:
+  title: SGAU - Sistema de Gestión Académica y Matrículas API
+  description: API REST para el Sistema de Gestión Académica Universitaria (SGAU), módulo de matrícula. Desarrollado con Clean Architecture y PHP nativo (PDO sin ORM).
+  version: 1.0.0
+  contact:
+    name: Soporte SGAU
+    email: soporte@unjbg.edu.pe
+
+servers:
+  - url: http://localhost:8000
+    description: Servidor de Desarrollo Local
+  - url: http://localhost/software%20de%20datos/SISTEMA-DE-MATRICULAS-/backend/public
+    description: Servidor Apache / Laragon
+
+tags:
+  - name: Health
+    description: Estado del sistema y verificación de servicios
+  - name: Autenticacion
+    description: Inicio de sesión y control de acceso
+  - name: Matriculas
+    description: Registro, consulta, validación y anulación de matrículas
+  - name: Estudiantes
+    description: Gestión académica de estudiantes y planes de estudio
+  - name: Cursos
+    description: Catálogo de asignaturas y oferta académica
+  - name: Periodos
+    description: Gestión de periodos académicos y fechas de matrícula
+  - name: Usuarios
+    description: Administración de usuarios y roles
+
+paths:
+  /api/health:
+    get:
+      summary: Health check del sistema
+      tags: [Health]
+      responses:
+        '200':
+          description: Sistema operativo y en línea
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/auth/login:
+    post:
+      summary: Iniciar sesión de usuario
+      tags: [Autenticacion]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDTO'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+
+  /api/matriculas:
+    post:
+      summary: Registrar una nueva matrícula académica
+      description: Valida estudiante, estado del periodo, prerrequisitos, cruce de horarios y vacantes disponibles por sección.
+      tags: [Matriculas]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarMatriculaDTO'
+      responses:
+        '201':
+          description: Matrícula registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatriculaResponse'
+        '422':
+          description: Error de validación de reglas de negocio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+
+  /api/matriculas/{id}:
+    get:
+      summary: Consultar ficha de matrícula por ID
+      tags: [Matriculas]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle de matrícula
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatriculaResponse'
+        '404':
+          description: Matrícula no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+    delete:
+      summary: Anular una matrícula y liberar vacantes
+      tags: [Matriculas]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Matrícula anulada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatriculaResponse'
+
+  /api/matriculas/{id}/anular:
+    post:
+      summary: Anular una matrícula (alternativa POST)
+      tags: [Matriculas]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Matrícula anulada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatriculaResponse'
+
+  /api/matriculas/codigo/{codigo}:
+    get:
+      summary: Consultar matrícula por código de matrícula
+      tags: [Matriculas]
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: string
+            example: MAT-1-1-A1B2
+      responses:
+        '200':
+          description: Detalle de matrícula
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatriculaResponse'
+
+  /api/matriculas/estudiante/{id}:
+    get:
+      summary: Listar historial de matrículas de un estudiante
+      tags: [Matriculas]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Historial de matrículas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Matricula'
+
+  /api/estudiantes:
+    get:
+      summary: Listar estudiantes registrados
+      tags: [Estudiantes]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Lista de estudiantes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Estudiante'
+    post:
+      summary: Registrar nuevo estudiante
+      tags: [Estudiantes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearEstudianteDTO'
+      responses:
+        '201':
+          description: Estudiante creado exitosamente
+
+  /api/estudiantes/{id}:
+    get:
+      summary: Consultar estudiante por ID
+      tags: [Estudiantes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Datos del estudiante
+
+  /api/estudiantes/codigo/{codigo}:
+    get:
+      summary: Consultar estudiante por código universitario
+      tags: [Estudiantes]
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Datos del estudiante
+
+  /api/cursos:
+    get:
+      summary: Listar cursos del catálogo académico
+      tags: [Cursos]
+      responses:
+        '200':
+          description: Lista de cursos
+    post:
+      summary: Crear nuevo curso
+      tags: [Cursos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearCursoDTO'
+      responses:
+        '201':
+          description: Curso creado exitosamente
+
+  /api/cursos/{id}:
+    get:
+      summary: Consultar curso por ID
+      tags: [Cursos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Datos del curso
+
+  /api/oferta-academica:
+    get:
+      summary: Listar oferta de secciones con vacantes y horarios
+      tags: [Cursos]
+      parameters:
+        - name: periodo_id
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: carrera_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Oferta académica disponible
+
+  /api/periodos:
+    get:
+      summary: Listar periodos académicos
+      tags: [Periodos]
+      responses:
+        '200':
+          description: Lista de periodos
+  /api/periodos/activo:
+    get:
+      summary: Obtener periodo académico activo para matrícula
+      tags: [Periodos]
+      responses:
+        '200':
+          description: Periodo académico activo
+
+  /api/usuarios:
+    get:
+      summary: Listar usuarios del sistema
+      tags: [Usuarios]
+      responses:
+        '200':
+          description: Lista de usuarios
+    post:
+      summary: Crear nuevo usuario
+      tags: [Usuarios]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearUsuarioDTO'
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data: { type: object, nullable: true }
+
+    ApiErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string, example: "Error al procesar la solicitud" }
+        data: { nullable: true, example: null }
+        errors: { type: array, items: { type: string }, nullable: true }
+
+    LoginDTO:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: "admin@unjbg.edu.pe" }
+        password: { type: string, format: password, example: "123456" }
+
+    AuthResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            token: { type: string }
+            token_type: { type: string, example: "Bearer" }
+            expires_in: { type: integer, example: 86400 }
+            user: { $ref: '#/components/schemas/Usuario' }
+
+    RegistrarMatriculaDTO:
+      type: object
+      required: [estudiante_id, periodo_id, secciones]
+      properties:
+        estudiante_id: { type: integer, example: 1 }
+        periodo_id: { type: integer, example: 1 }
+        secciones:
+          type: array
+          items: { type: integer }
+          example: [1, 2, 3]
+
+    CrearEstudianteDTO:
+      type: object
+      required: [usuario_id, carrera_id, plan_estudio_id, codigo_estudiante]
+      properties:
+        usuario_id: { type: integer, example: 2 }
+        carrera_id: { type: integer, example: 1 }
+        plan_estudio_id: { type: integer, example: 1 }
+        codigo_estudiante: { type: string, example: "2024-119001" }
+        anio_ingreso: { type: integer, example: 2024 }
+        estado_academico: { type: string, enum: [REGULAR, OBSERVADO, EGRESADO, RETIRADO], example: "REGULAR" }
+
+    CrearCursoDTO:
+      type: object
+      required: [codigo, nombre, creditos]
+      properties:
+        codigo: { type: string, example: "IS-501" }
+        nombre: { type: string, example: "Arquitectura de Software" }
+        creditos: { type: integer, example: 4 }
+        horas_teoricas: { type: integer, example: 2 }
+        horas_practicas: { type: integer, example: 2 }
+
+    CrearUsuarioDTO:
+      type: object
+      required: [rol_id, dni, email, password, nombre, apellido]
+      properties:
+        rol_id: { type: integer, example: 3 }
+        dni: { type: string, example: "72345678" }
+        email: { type: string, format: email, example: "juan.perez@unjbg.edu.pe" }
+        password: { type: string, example: "pass1234" }
+        nombre: { type: string, example: "Juan" }
+        apellido: { type: string, example: "Pérez" }
+        telefono: { type: string, example: "952123456" }
+
+    Usuario:
+      type: object
+      properties:
+        id: { type: integer }
+        rol_id: { type: integer }
+        dni: { type: string }
+        email: { type: string }
+        nombre: { type: string }
+        apellido: { type: string }
+        nombre_completo: { type: string }
+        telefono: { type: string, nullable: true }
+        activo: { type: boolean }
+
+    Estudiante:
+      type: object
+      properties:
+        id: { type: integer }
+        usuario_id: { type: integer }
+        carrera_id: { type: integer }
+        plan_estudio_id: { type: integer }
+        codigo_estudiante: { type: string }
+        anio_ingreso: { type: integer }
+        estado_academico: { type: string }
+        puede_matricularse: { type: boolean }
+        usuario: { $ref: '#/components/schemas/Usuario' }
+
+    Matricula:
+      type: object
+      properties:
+        id: { type: integer }
+        estudiante_id: { type: integer }
+        periodo_id: { type: integer }
+        codigo_matricula: { type: string }
+        fecha_matricula: { type: string }
+        total_creditos: { type: integer }
+        estado: { type: string, enum: [REGULAR, RECTIFICADA, ANULADA] }
+        estudiante: { $ref: '#/components/schemas/Estudiante' }
+        detalles:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              seccion_id: { type: integer }
+              creditos: { type: integer }
+              estado_curso: { type: string }
+
+    MatriculaResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/Matricula' }

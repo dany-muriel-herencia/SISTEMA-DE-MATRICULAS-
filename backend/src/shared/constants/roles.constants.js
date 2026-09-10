@@ -1,6 +1,0 @@
-export const Roles = {
-  ADMIN: 'ADMIN',
-  DOCENTE: 'DOCENTE',
-  ESTUDIANTE: 'ESTUDIANTE',
-  COORDINADOR: 'COORDINADOR'
-};

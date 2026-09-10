@@ -1,0 +1,23 @@
+{
+    "name": "sgau/sistema-matricula",
+    "description": "Sistema de Gestión Académica Universitaria (SGAU) - Módulo de Matrícula en Clean Architecture",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    }
+}
