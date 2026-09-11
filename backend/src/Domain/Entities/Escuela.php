@@ -1,69 +1,43 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Domain\Entities;
+namespace App\Dominio\Entidades;
 
 use InvalidArgumentException;
 
 class Escuela
 {
-    private ?int $id;
-    private int $facultadId;
-    private string $codigo;
+    private int $idEscuela;
     private string $nombre;
-    private int $duracionSemestres;
-    private ?Facultad $facultad;
-    private ?string $createdAt;
+    private string $descripcion;
+    private string $director;
 
     public function __construct(
-        int $facultadId,
-        string $codigo,
+        int $idEscuela,
         string $nombre,
-        int $duracionSemestres = 10,
-        ?Facultad $facultad = null,
-        ?int $id = null,
-        ?string $createdAt = null
+        string $descripcion,
+        string $director
     ) {
-        $codigo = trim($codigo);
-        $nombre = trim($nombre);
-        if (empty($codigo)) {
-            throw new InvalidArgumentException("El código de la escuela/carrera no puede estar vacío.");
-        }
-        if (empty($nombre)) {
-            throw new InvalidArgumentException("El nombre de la escuela/carrera no puede estar vacío.");
-        }
-        if ($duracionSemestres <= 0) {
-            throw new InvalidArgumentException("La duración en semestres debe ser mayor a 0.");
+        if ($idEscuela <= 0) {
+            throw new InvalidArgumentException(
+                'El ID de la escuela debe ser mayor que cero'
+            );
         }
 
-        $this->id = $id;
-        $this->facultadId = $facultadId;
-        $this->codigo = $codigo;
+        if (empty(trim($nombre))) {
+            throw new InvalidArgumentException(
+                'El nombre de la escuela es obligatorio'
+            );
+        }
+
+        $this->idEscuela = $idEscuela;
         $this->nombre = $nombre;
-        $this->duracionSemestres = $duracionSemestres;
-        $this->facultad = $facultad;
-        $this->createdAt = $createdAt;
+        $this->descripcion = $descripcion;
+        $this->director = $director;
     }
 
-    public function getId(): ?int
+    public function getIdEscuela(): int
     {
-        return $this->id;
-    }
-
-    public function setId(int $id): void
-    {
-        $this->id = $id;
-    }
-
-    public function getFacultadId(): int
-    {
-        return $this->facultadId;
-    }
-
-    public function getCodigo(): string
-    {
-        return $this->codigo;
+        return $this->idEscuela;
     }
 
     public function getNombre(): string
@@ -71,36 +45,13 @@ class Escuela
         return $this->nombre;
     }
 
-    public function getDuracionSemestres(): int
+    public function getDescripcion(): string
     {
-        return $this->duracionSemestres;
+        return $this->descripcion;
     }
 
-    public function getFacultad(): ?Facultad
+    public function getDirector(): string
     {
-        return $this->facultad;
-    }
-
-    public function setFacultad(?Facultad $facultad): void
-    {
-        $this->facultad = $facultad;
-    }
-
-    public function getCreatedAt(): ?string
-    {
-        return $this->createdAt;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'facultad_id' => $this->facultadId,
-            'codigo' => $this->codigo,
-            'nombre' => $this->nombre,
-            'duracion_semestres' => $this->duracionSemestres,
-            'facultad' => $this->facultad?->toArray(),
-            'created_at' => $this->createdAt,
-        ];
+        return $this->director;
     }
 }

@@ -1,138 +1,89 @@
 <?php
 
-declare(strict_types=1);
+namespace App\Dominio\Entidades;
 
-namespace App\Domain\Entities;
-
+use DateTimeImmutable;
 use InvalidArgumentException;
 
-class Estudiante
+class Estudiante extends Usuario
 {
-    private ?int $id;
-    private int $usuarioId;
-    private int $carreraId;
-    private int $planEstudioId;
-    private string $codigoEstudiante;
-    private int $anioIngreso;
-    private string $estadoAcademico; // REGULAR, OBSERVADO, EGRESADO, RETIRADO
-    private ?Usuario $usuario;
-    private ?string $createdAt;
-    private ?string $updatedAt;
-
-    public const ESTADOS_VALIDOS = ['REGULAR', 'OBSERVADO', 'EGRESADO', 'RETIRADO'];
+    private string $codigoUniversitario;
+    private string $dni;
+    private DateTimeImmutable $fechaNacimiento;
+    private DateTimeImmutable $fechaIngreso;
+    private float $promedioAcademico;
 
     public function __construct(
-        int $usuarioId,
-        int $carreraId,
-        int $planEstudioId,
-        string $codigoEstudiante,
-        int $anioIngreso,
-        string $estadoAcademico = 'REGULAR',
-        ?Usuario $usuario = null,
-        ?int $id = null,
-        ?string $createdAt = null,
-        ?string $updatedAt = null
+        int $idUsuario,
+        string $nombre,
+        string $email,
+        string $contrasenha,
+        string $rol,
+        bool $estado,
+        DateTimeImmutable $fechaCreacion,
+        string $codigoUniversitario,
+        string $dni,
+        DateTimeImmutable $fechaNacimiento,
+        DateTimeImmutable $fechaIngreso,
+        float $promedioAcademico
     ) {
-        $codigoEstudiante = trim($codigoEstudiante);
-        if (empty($codigoEstudiante)) {
-            throw new InvalidArgumentException("El código del estudiante no puede estar vacío.");
+        parent::__construct(
+            $idUsuario,
+            $nombre,
+            $email,
+            $contrasenha,
+            $rol,
+            $estado,
+            $fechaCreacion
+        );
+
+        if (empty(trim($codigoUniversitario))) {
+            throw new InvalidArgumentException(
+                'El código universitario es obligatorio'
+            );
         }
-        $estadoAcademico = strtoupper(trim($estadoAcademico));
-        if (!in_array($estadoAcademico, self::ESTADOS_VALIDOS, true)) {
-            throw new InvalidArgumentException("Estado académico no válido: {$estadoAcademico}");
+
+        if (empty(trim($dni))) {
+            throw new InvalidArgumentException(
+                'El DNI es obligatorio'
+            );
         }
 
-        $this->id = $id;
-        $this->usuarioId = $usuarioId;
-        $this->carreraId = $carreraId;
-        $this->planEstudioId = $planEstudioId;
-        $this->codigoEstudiante = $codigoEstudiante;
-        $this->anioIngreso = $anioIngreso;
-        $this->estadoAcademico = $estadoAcademico;
-        $this->usuario = $usuario;
-        $this->createdAt = $createdAt;
-        $this->updatedAt = $updatedAt;
+        if ($promedioAcademico < 0 || $promedioAcademico > 20) {
+            throw new InvalidArgumentException(
+                'El promedio académico debe estar entre 0 y 20'
+            );
+        }
+
+        $this->codigoUniversitario = $codigoUniversitario;
+        $this->dni = $dni;
+        $this->fechaNacimiento = $fechaNacimiento;
+        $this->fechaIngreso = $fechaIngreso;
+        $this->promedioAcademico = $promedioAcademico;
     }
 
-    public function getId(): ?int
+    public function getCodigoUniversitario(): string
     {
-        return $this->id;
+        return $this->codigoUniversitario;
     }
 
-    public function setId(int $id): void
+    public function getDni(): string
     {
-        $this->id = $id;
+        return $this->dni;
     }
 
-    public function getUsuarioId(): int
+    public function getFechaNacimiento(): DateTimeImmutable
     {
-        return $this->usuarioId;
+        return $this->fechaNacimiento;
     }
 
-    public function getCarreraId(): int
+    public function getFechaIngreso(): DateTimeImmutable
     {
-        return $this->carreraId;
+        return $this->fechaIngreso;
     }
 
-    public function getPlanEstudioId(): int
+    public function getPromedioAcademico(): float
     {
-        return $this->planEstudioId;
-    }
-
-    public function getCodigoEstudiante(): string
-    {
-        return $this->codigoEstudiante;
-    }
-
-    public function getAnioIngreso(): int
-    {
-        return $this->anioIngreso;
-    }
-
-    public function getEstadoAcademico(): string
-    {
-        return $this->estadoAcademico;
-    }
-
-    public function puedeMatricularse(): bool
-    {
-        return in_array($this->estadoAcademico, ['REGULAR', 'OBSERVADO'], true);
-    }
-
-    public function getUsuario(): ?Usuario
-    {
-        return $this->usuario;
-    }
-
-    public function setUsuario(?Usuario $usuario): void
-    {
-        $this->usuario = $usuario;
-    }
-
-    public function getCreatedAt(): ?string
-    {
-        return $this->createdAt;
-    }
-
-    public function getUpdatedAt(): ?string
-    {
-        return $this->updatedAt;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'usuario_id' => $this->usuarioId,
-            'carrera_id' => $this->carreraId,
-            'plan_estudio_id' => $this->planEstudioId,
-            'codigo_estudiante' => $this->codigoEstudiante,
-            'anio_ingreso' => $this->anioIngreso,
-            'estado_academico' => $this->estadoAcademico,
-            'puede_matricularse' => $this->puedeMatricularse(),
-            'usuario' => $this->usuario?->toArray(),
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
-        ];
+        return $this->promedioAcademico;
     }
 }

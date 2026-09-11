@@ -1,78 +1,73 @@
 <?php
 
-declare(strict_types=1);
+namespace App\Dominio\Entidades;
 
-namespace App\Domain\Entities;
+use DateTimeImmutable;
+use InvalidArgumentException;
 
-class Docente
+class Docente extends Usuario
 {
-    private ?int $id;
-    private int $usuarioId;
-    private ?string $especialidad;
-    private ?string $gradoAcademico;
-    private ?Usuario $usuario;
-    private ?string $createdAt;
+    private string $codigo;
+    private string $especialidad;
+    private string $gradoAcademico;
 
     public function __construct(
-        int $usuarioId,
-        ?string $especialidad = null,
-        ?string $gradoAcademico = null,
-        ?Usuario $usuario = null,
-        ?int $id = null,
-        ?string $createdAt = null
+        int $idUsuario,
+        string $nombre,
+        string $email,
+        string $contrasenha,
+        string $rol,
+        bool $estado,
+        DateTimeImmutable $fechaCreacion,
+        string $codigo,
+        string $especialidad,
+        string $gradoAcademico
     ) {
-        $this->id = $id;
-        $this->usuarioId = $usuarioId;
+        parent::__construct(
+            $idUsuario,
+            $nombre,
+            $email,
+            $contrasenha,
+            $rol,
+            $estado,
+            $fechaCreacion
+        );
+
+        if (empty(trim($codigo))) {
+            throw new InvalidArgumentException(
+                'El código del docente es obligatorio'
+            );
+        }
+
+        if (empty(trim($especialidad))) {
+            throw new InvalidArgumentException(
+                'La especialidad es obligatoria'
+            );
+        }
+
+        if (empty(trim($gradoAcademico))) {
+            throw new InvalidArgumentException(
+                'El grado académico es obligatorio'
+            );
+        }
+
+        $this->codigo = $codigo;
         $this->especialidad = $especialidad;
         $this->gradoAcademico = $gradoAcademico;
-        $this->usuario = $usuario;
-        $this->createdAt = $createdAt;
     }
 
-    public function getId(): ?int
+    public function getCodigo(): string
     {
-        return $this->id;
+        return $this->codigo;
     }
 
-    public function getUsuarioId(): int
-    {
-        return $this->usuarioId;
-    }
-
-    public function getEspecialidad(): ?string
+    public function getEspecialidad(): string
     {
         return $this->especialidad;
     }
 
-    public function getGradoAcademico(): ?string
+    public function getGradoAcademico(): string
     {
         return $this->gradoAcademico;
-    }
-
-    public function getUsuario(): ?Usuario
-    {
-        return $this->usuario;
-    }
-
-    public function setUsuario(?Usuario $usuario): void
-    {
-        $this->usuario = $usuario;
-    }
-
-    public function getCreatedAt(): ?string
-    {
-        return $this->createdAt;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'usuario_id' => $this->usuarioId,
-            'especialidad' => $this->especialidad,
-            'grado_academico' => $this->gradoAcademico,
-            'usuario' => $this->usuario?->toArray(),
-            'created_at' => $this->createdAt,
-        ];
     }
 }
