@@ -1,194 +1,458 @@
--- =============================================================================
--- SISTEMA DE MATRÍCULA UNJBG - ESQUEMA DE BASE DE DATOS RELACIONAL
--- Motor: MySQL 8.x / MariaDB
--- Acceso: SQL Nativo sin ORM
--- =============================================================================
+-- ============================================================
+-- BASE DE DATOS DEL SISTEMA DE GESTIÓN ACADÉMICA - SGAU
+-- ============================================================
 
-CREATE DATABASE IF NOT EXISTS `db_matricula_unjbg`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS sgau
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
 
-USE `db_matricula_unjbg`;
+USE sgau;
 
--- 1. TABLA: roles
-CREATE TABLE IF NOT EXISTS `roles` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `nombre` VARCHAR(50) NOT NULL UNIQUE,
-  `descripcion` VARCHAR(255) NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
 
--- 2. TABLA: usuarios
-CREATE TABLE IF NOT EXISTS `usuarios` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `rol_id` INT NOT NULL,
-  `dni` VARCHAR(8) NOT NULL UNIQUE,
-  `email` VARCHAR(120) NOT NULL UNIQUE,
-  `password_hash` VARCHAR(255) NOT NULL,
-  `nombre` VARCHAR(100) NOT NULL,
-  `apellido` VARCHAR(100) NOT NULL,
-  `telefono` VARCHAR(20) NULL,
-  `activo` BOOLEAN NOT NULL DEFAULT TRUE,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_usuarios_rol` FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+-- ============================================================
+-- 1. USUARIOS
+-- ============================================================
 
--- 3. TABLA: facultades
-CREATE TABLE IF NOT EXISTS `facultades` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `codigo` VARCHAR(10) NOT NULL UNIQUE,
-  `nombre` VARCHAR(150) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+CREATE TABLE usuario (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    contrasenha VARCHAR(255) NOT NULL,
+    rol VARCHAR(50) NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
--- 4. TABLA: carreras (Escuelas Profesionales)
-CREATE TABLE IF NOT EXISTS `carreras` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `facultad_id` INT NOT NULL,
-  `codigo` VARCHAR(10) NOT NULL UNIQUE,
-  `nombre` VARCHAR(150) NOT NULL,
-  `duracion_semestres` INT NOT NULL DEFAULT 10,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_carreras_facultad` FOREIGN KEY (`facultad_id`) REFERENCES `facultades` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB;
 
--- 5. TABLA: planes_estudio
-CREATE TABLE IF NOT EXISTS `planes_estudio` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `carrera_id` INT NOT NULL,
-  `codigo` VARCHAR(20) NOT NULL,
-  `anio` INT NOT NULL,
-  `activo` BOOLEAN NOT NULL DEFAULT TRUE,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_planes_carrera` FOREIGN KEY (`carrera_id`) REFERENCES `carreras` (`id`) ON DELETE RESTRICT,
-  UNIQUE KEY `uk_carrera_plan` (`carrera_id`, `codigo`)
-) ENGINE=InnoDB;
+CREATE TABLE estudiante (
+    id_usuario INT PRIMARY KEY,
+    codigo_universitario VARCHAR(30) NOT NULL UNIQUE,
+    dni VARCHAR(8) NOT NULL UNIQUE,
+    fecha_nacimiento DATE NOT NULL,
+    fecha_ingreso DATE NOT NULL,
+    promedio_academico DECIMAL(5,2) NOT NULL DEFAULT 0,
 
--- 6. TABLA: estudiantes
-CREATE TABLE IF NOT EXISTS `estudiantes` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `usuario_id` INT NOT NULL UNIQUE,
-  `carrera_id` INT NOT NULL,
-  `plan_estudio_id` INT NOT NULL,
-  `codigo_estudiante` VARCHAR(15) NOT NULL UNIQUE,
-  `anio_ingreso` INT NOT NULL,
-  `estado_academico` ENUM('REGULAR', 'OBSERVADO', 'EGRESADO', 'RETIRADO') DEFAULT 'REGULAR',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_estudiantes_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_estudiantes_carrera` FOREIGN KEY (`carrera_id`) REFERENCES `carreras` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_estudiantes_plan` FOREIGN KEY (`plan_estudio_id`) REFERENCES `planes_estudio` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB;
+    CONSTRAINT fk_estudiante_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE
+);
 
--- 7. TABLA: cursos
-CREATE TABLE IF NOT EXISTS `cursos` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `codigo` VARCHAR(20) NOT NULL UNIQUE,
-  `nombre` VARCHAR(150) NOT NULL,
-  `creditos` INT NOT NULL,
-  `horas_teoricas` INT NOT NULL DEFAULT 2,
-  `horas_practicas` INT NOT NULL DEFAULT 2,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
 
--- 8. TABLA: plan_cursos (Malla curricular con ciclo)
-CREATE TABLE IF NOT EXISTS `plan_cursos` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `plan_estudio_id` INT NOT NULL,
-  `curso_id` INT NOT NULL,
-  `ciclo` INT NOT NULL,
-  `es_electivo` BOOLEAN NOT NULL DEFAULT FALSE,
-  CONSTRAINT `fk_pc_plan` FOREIGN KEY (`plan_estudio_id`) REFERENCES `planes_estudio` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pc_curso` FOREIGN KEY (`curso_id`) REFERENCES `cursos` (`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uk_plan_curso` (`plan_estudio_id`, `curso_id`)
-) ENGINE=InnoDB;
+CREATE TABLE docente (
+    id_usuario INT PRIMARY KEY,
+    codigo VARCHAR(30) NOT NULL UNIQUE,
+    especialidad VARCHAR(150) NOT NULL,
+    grado_academico VARCHAR(100) NOT NULL,
 
--- 9. TABLA: prerrequisitos
-CREATE TABLE IF NOT EXISTS `prerrequisitos` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `plan_curso_id` INT NOT NULL,
-  `curso_requisito_id` INT NOT NULL,
-  CONSTRAINT `fk_prereq_plancurso` FOREIGN KEY (`plan_curso_id`) REFERENCES `plan_cursos` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_prereq_cursoreq` FOREIGN KEY (`curso_requisito_id`) REFERENCES `cursos` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+    CONSTRAINT fk_docente_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE
+);
 
--- 10. TABLA: periodos_academicos
-CREATE TABLE IF NOT EXISTS `periodos_academicos` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `codigo` VARCHAR(20) NOT NULL UNIQUE,
-  `anio` INT NOT NULL,
-  `semestre` ENUM('I', 'II', 'EXTRAORDINARIO') NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `fecha_inicio_matricula` DATETIME NOT NULL,
-  `fecha_fin_matricula` DATETIME NOT NULL,
-  `estado` ENUM('PLANIFICACION', 'MATRICULA_ABIERTA', 'EN_CURSO', 'CERRADO') DEFAULT 'PLANIFICACION',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
 
--- 11. TABLA: aulas
-CREATE TABLE IF NOT EXISTS `aulas` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `codigo` VARCHAR(20) NOT NULL UNIQUE,
-  `pabellon` VARCHAR(50) NOT NULL,
-  `capacidad` INT NOT NULL,
-  `tipo` ENUM('TEORICA', 'LABORATORIO', 'TALLER') DEFAULT 'TEORICA'
-) ENGINE=InnoDB;
+CREATE TABLE administrador (
+    id_usuario INT PRIMARY KEY,
+    nivel VARCHAR(50) NOT NULL,
 
--- 12. TABLA: secciones (Oferta académica por periodo)
-CREATE TABLE IF NOT EXISTS `secciones` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `periodo_id` INT NOT NULL,
-  `curso_id` INT NOT NULL,
-  `docente_id` INT NULL,
-  `letra_seccion` VARCHAR(2) NOT NULL,
-  `capacidad_maxima` INT NOT NULL DEFAULT 40,
-  `vacantes_disponibles` INT NOT NULL DEFAULT 40,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_secciones_periodo` FOREIGN KEY (`periodo_id`) REFERENCES `periodos_academicos` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_secciones_curso` FOREIGN KEY (`curso_id`) REFERENCES `cursos` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_secciones_docente` FOREIGN KEY (`docente_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  UNIQUE KEY `uk_seccion_periodo_curso` (`periodo_id`, `curso_id`, `letra_seccion`)
-) ENGINE=InnoDB;
+    CONSTRAINT fk_administrador_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE
+);
 
--- 13. TABLA: horarios
-CREATE TABLE IF NOT EXISTS `horarios` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `seccion_id` INT NOT NULL,
-  `aula_id` INT NULL,
-  `dia_semana` ENUM('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO') NOT NULL,
-  `hora_inicio` TIME NOT NULL,
-  `hora_fin` TIME NOT NULL,
-  CONSTRAINT `fk_horarios_seccion` FOREIGN KEY (`seccion_id`) REFERENCES `secciones` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_horarios_aula` FOREIGN KEY (`aula_id`) REFERENCES `aulas` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB;
 
--- 14. TABLA: matriculas
-CREATE TABLE IF NOT EXISTS `matriculas` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `estudiante_id` INT NOT NULL,
-  `periodo_id` INT NOT NULL,
-  `codigo_matricula` VARCHAR(30) NOT NULL UNIQUE,
-  `fecha_matricula` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `total_creditos` INT NOT NULL DEFAULT 0,
-  `estado` ENUM('REGISTRADA', 'RECTIFICADA', 'ANULADA') NOT NULL DEFAULT 'REGISTRADA',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT `fk_matriculas_estudiante` FOREIGN KEY (`estudiante_id`) REFERENCES `estudiantes` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_matriculas_periodo` FOREIGN KEY (`periodo_id`) REFERENCES `periodos_academicos` (`id`) ON DELETE RESTRICT,
-  UNIQUE KEY `uk_estudiante_periodo` (`estudiante_id`, `periodo_id`)
-) ENGINE=InnoDB;
+-- ============================================================
+-- 2. ESTRUCTURA ACADÉMICA
+-- ============================================================
 
--- 15. TABLA: matricula_detalles
-CREATE TABLE IF NOT EXISTS `matricula_detalles` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `matricula_id` INT NOT NULL,
-  `seccion_id` INT NOT NULL,
-  `creditos` INT NOT NULL,
-  `estado_curso` ENUM('MATRICULADO', 'RETIRADO', 'APROBADO', 'DESAPROBADO') DEFAULT 'MATRICULADO',
-  CONSTRAINT `fk_md_matricula` FOREIGN KEY (`matricula_id`) REFERENCES `matriculas` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_md_seccion` FOREIGN KEY (`seccion_id`) REFERENCES `secciones` (`id`) ON DELETE RESTRICT,
-  UNIQUE KEY `uk_matricula_seccion` (`matricula_id`, `seccion_id`)
-) ENGINE=InnoDB;
+CREATE TABLE facultad (
+    id_facultad INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    decano VARCHAR(150)
+);
+
+
+CREATE TABLE escuela (
+    id_escuela INT AUTO_INCREMENT PRIMARY KEY,
+    id_facultad INT NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    director VARCHAR(150),
+
+    CONSTRAINT fk_escuela_facultad
+        FOREIGN KEY (id_facultad)
+        REFERENCES facultad(id_facultad)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+CREATE TABLE carrera (
+    id_carrera INT AUTO_INCREMENT PRIMARY KEY,
+    id_escuela INT NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    codigo VARCHAR(30) NOT NULL UNIQUE,
+    duracion INT NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_carrera_escuela
+        FOREIGN KEY (id_escuela)
+        REFERENCES escuela(id_escuela)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+CREATE TABLE plan_estudio (
+    id_plan INT AUTO_INCREMENT PRIMARY KEY,
+    id_carrera INT NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE,
+    estado BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_plan_carrera
+        FOREIGN KEY (id_carrera)
+        REFERENCES carrera(id_carrera)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+-- ============================================================
+-- 3. CURSOS Y PLAN DE ESTUDIOS
+-- ============================================================
+
+CREATE TABLE curso (
+    id_curso INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    codigo VARCHAR(30) NOT NULL UNIQUE,
+    creditos INT NOT NULL,
+    horas_teoria INT NOT NULL DEFAULT 0,
+    horas_practica INT NOT NULL DEFAULT 0,
+    ciclo VARCHAR(20) NOT NULL,
+    estado BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+
+CREATE TABLE curriculum (
+    id_curriculum INT AUTO_INCREMENT PRIMARY KEY,
+    id_plan INT NOT NULL,
+    id_curso INT NOT NULL,
+    ciclo VARCHAR(20) NOT NULL,
+    obligatorio BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_curriculum_plan
+        FOREIGN KEY (id_plan)
+        REFERENCES plan_estudio(id_plan)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_curriculum_curso
+        FOREIGN KEY (id_curso)
+        REFERENCES curso(id_curso)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uk_curriculum_plan_curso
+        UNIQUE (id_plan, id_curso)
+);
+
+
+CREATE TABLE prerequisito (
+    id_prerequisito INT AUTO_INCREMENT PRIMARY KEY,
+    id_curso INT NOT NULL,
+    id_curso_requerido INT NOT NULL,
+
+    CONSTRAINT fk_prerequisito_curso
+        FOREIGN KEY (id_curso)
+        REFERENCES curso(id_curso)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_prerequisito_curso_requerido
+        FOREIGN KEY (id_curso_requerido)
+        REFERENCES curso(id_curso)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uk_prerequisito
+        UNIQUE (id_curso, id_curso_requerido)
+);
+
+
+-- ============================================================
+-- 4. PERIODO ACADÉMICO
+-- ============================================================
+
+CREATE TABLE periodo_academico (
+    id_periodo INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    fecha_matricula_inicio DATE NOT NULL,
+    fecha_matricula_fin DATE NOT NULL,
+    estado VARCHAR(30) NOT NULL
+);
+
+
+-- ============================================================
+-- 5. SECCIONES
+-- ============================================================
+
+CREATE TABLE seccion (
+    id_seccion INT AUTO_INCREMENT PRIMARY KEY,
+    id_curso INT NOT NULL,
+    id_periodo INT NOT NULL,
+    id_docente INT NOT NULL,
+    codigo VARCHAR(30) NOT NULL,
+    vacantes INT NOT NULL,
+    vacantes_disponibles INT NOT NULL,
+
+    CONSTRAINT fk_seccion_curso
+        FOREIGN KEY (id_curso)
+        REFERENCES curso(id_curso)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_seccion_periodo
+        FOREIGN KEY (id_periodo)
+        REFERENCES periodo_academico(id_periodo)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_seccion_docente
+        FOREIGN KEY (id_docente)
+        REFERENCES docente(id_usuario)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uk_seccion_periodo_codigo
+        UNIQUE (id_periodo, codigo)
+);
+
+
+-- ============================================================
+-- 6. AULAS
+-- ============================================================
+
+CREATE TABLE aula (
+    id_aula INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    ubicacion VARCHAR(150),
+    capacidad INT NOT NULL,
+    tipo VARCHAR(50),
+    disponible BOOLEAN NOT NULL DEFAULT TRUE,
+    estado BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+
+-- ============================================================
+-- 7. HORARIOS
+-- ============================================================
+
+CREATE TABLE horario (
+    id_horario INT AUTO_INCREMENT PRIMARY KEY,
+    id_seccion INT NOT NULL,
+    id_aula INT NOT NULL,
+    dia_semana VARCHAR(20) NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    modalidad VARCHAR(50) NOT NULL,
+
+    CONSTRAINT fk_horario_seccion
+        FOREIGN KEY (id_seccion)
+        REFERENCES seccion(id_seccion)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_horario_aula
+        FOREIGN KEY (id_aula)
+        REFERENCES aula(id_aula)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+-- ============================================================
+-- 8. MATRÍCULA
+-- ============================================================
+
+CREATE TABLE matricula (
+    id_matricula INT AUTO_INCREMENT PRIMARY KEY,
+    id_estudiante INT NOT NULL,
+    id_periodo INT NOT NULL,
+    fecha_matricula DATE NOT NULL,
+    estado VARCHAR(30) NOT NULL,
+    total_creditos INT NOT NULL DEFAULT 0,
+
+    CONSTRAINT fk_matricula_estudiante
+        FOREIGN KEY (id_estudiante)
+        REFERENCES estudiante(id_usuario)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_matricula_periodo
+        FOREIGN KEY (id_periodo)
+        REFERENCES periodo_academico(id_periodo)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+CREATE TABLE detalle_matricula (
+    id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+    id_matricula INT NOT NULL,
+    id_seccion INT NOT NULL,
+    estado VARCHAR(30) NOT NULL,
+
+    CONSTRAINT fk_detalle_matricula
+        FOREIGN KEY (id_matricula)
+        REFERENCES matricula(id_matricula)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_detalle_seccion
+        FOREIGN KEY (id_seccion)
+        REFERENCES seccion(id_seccion)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uk_detalle_matricula_seccion
+        UNIQUE (id_matricula, id_seccion)
+);
+
+
+-- ============================================================
+-- 9. PAGOS
+-- ============================================================
+
+CREATE TABLE concepto_pago (
+    id_concepto INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    monto DECIMAL(10,2) NOT NULL,
+    obligatorio BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+
+CREATE TABLE pago (
+    id_pago INT AUTO_INCREMENT PRIMARY KEY,
+    id_estudiante INT NOT NULL,
+    id_concepto INT NOT NULL,
+    fecha_pago DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    monto DECIMAL(10,2) NOT NULL,
+    metodo_pago VARCHAR(50) NOT NULL,
+
+    CONSTRAINT fk_pago_estudiante
+        FOREIGN KEY (id_estudiante)
+        REFERENCES estudiante(id_usuario)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_pago_concepto
+        FOREIGN KEY (id_concepto)
+        REFERENCES concepto_pago(id_concepto)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+CREATE TABLE comprobante_pago (
+    id_comprobante INT AUTO_INCREMENT PRIMARY KEY,
+    id_pago INT NOT NULL UNIQUE,
+    tipo VARCHAR(50) NOT NULL,
+    numero VARCHAR(50) NOT NULL,
+    serie VARCHAR(50),
+    fecha_emision DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_comprobante_pago
+        FOREIGN KEY (id_pago)
+        REFERENCES pago(id_pago)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+-- ============================================================
+-- 10. SESIONES
+-- ============================================================
+
+CREATE TABLE sesion (
+    id_sesion INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    fecha_inicio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_fin DATETIME,
+    ip VARCHAR(45),
+    activa BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_sesion_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+-- ============================================================
+-- 11. AUDITORÍA
+-- ============================================================
+
+CREATE TABLE auditoria (
+    id_auditoria INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    accion VARCHAR(100) NOT NULL,
+    tabla_afectada VARCHAR(100) NOT NULL,
+    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    datos_anteriores TEXT,
+    datos_nuevos TEXT,
+    ip VARCHAR(45),
+
+    CONSTRAINT fk_auditoria_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
+
+-- ============================================================
+-- ÍNDICES
+-- ============================================================
+
+CREATE INDEX idx_estudiante_codigo
+    ON estudiante(codigo_universitario);
+
+CREATE INDEX idx_estudiante_dni
+    ON estudiante(dni);
+
+CREATE INDEX idx_curso_codigo
+    ON curso(codigo);
+
+CREATE INDEX idx_seccion_curso
+    ON seccion(id_curso);
+
+CREATE INDEX idx_seccion_periodo
+    ON seccion(id_periodo);
+
+CREATE INDEX idx_matricula_estudiante
+    ON matricula(id_estudiante);
+
+CREATE INDEX idx_matricula_periodo
+    ON matricula(id_periodo);
+
+CREATE INDEX idx_detalle_matricula
+    ON detalle_matricula(id_matricula);
+
+CREATE INDEX idx_pago_estudiante
+    ON pago(id_estudiante);
+
+CREATE INDEX idx_sesion_usuario
+    ON sesion(id_usuario);
+
+CREATE INDEX idx_auditoria_usuario
+    ON auditoria(id_usuario);
