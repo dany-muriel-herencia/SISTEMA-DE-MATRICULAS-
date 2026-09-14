@@ -21,9 +21,9 @@ class Carrera
         int $duracion,
         bool $estado
     ) {
-        if ($idCarrera <= 0) {
+        if ($idCarrera < 0) {
             throw new InvalidArgumentException(
-                'El ID de la carrera debe ser mayor que cero'
+                'El ID de la carrera no puede ser negativo'
             );
         }
 

@@ -59,7 +59,11 @@ class GestionAcademicaController
     {
         try {
             $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-            $res = $this->estructura->registrarFacultad($input['nombre'] ?? '', $input['codigo'] ?? '');
+            $res = $this->estructura->registrarFacultad(
+                $input['nombre'] ?? '',
+                $input['descripcion'] ?? $input['codigo'] ?? '',
+                $input['decano'] ?? ''
+            );
             ApiResponse::success($res, 'Facultad registrada.', 201);
         } catch (InvalidArgumentException $e) {
             ApiResponse::unprocessable($e->getMessage());
@@ -73,7 +77,12 @@ class GestionAcademicaController
     {
         try {
             $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-            $res = $this->estructura->registrarEscuela((int)($input['id_facultad'] ?? 0), $input['nombre'] ?? '', $input['codigo'] ?? '');
+            $res = $this->estructura->registrarEscuela(
+                (int)($input['id_facultad'] ?? 0),
+                $input['nombre'] ?? '',
+                $input['descripcion'] ?? $input['codigo'] ?? '',
+                $input['director'] ?? ''
+            );
             ApiResponse::success($res, 'Escuela registrada.', 201);
         } catch (InvalidArgumentException $e) {
             ApiResponse::unprocessable($e->getMessage());
@@ -89,7 +98,13 @@ class GestionAcademicaController
     {
         try {
             $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-            $res = $this->estructura->registrarCarrera((int)($input['id_escuela'] ?? 0), $input['nombre'] ?? '', $input['codigo'] ?? '');
+            $res = $this->estructura->registrarCarrera(
+                (int)($input['id_escuela'] ?? 0),
+                $input['nombre'] ?? '',
+                $input['codigo'] ?? '',
+                (int)($input['duracion'] ?? 5),
+                (bool)($input['estado'] ?? true)
+            );
             ApiResponse::success($res, 'Carrera registrada.', 201);
         } catch (InvalidArgumentException $e) {
             ApiResponse::unprocessable($e->getMessage());

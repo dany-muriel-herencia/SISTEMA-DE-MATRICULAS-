@@ -17,9 +17,9 @@ class Facultad
         string $descripcion,
         string $decano
     ) {
-        if ($idFacultad <= 0) {
+        if ($idFacultad < 0) {
             throw new InvalidArgumentException(
-                'El ID de la facultad debe ser mayor que cero'
+                'El ID de la facultad no puede ser negativo'
             );
         }
 

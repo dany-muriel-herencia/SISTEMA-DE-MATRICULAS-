@@ -2,18 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Aplicacion\CasosDeUso\Auth;
+namespace App\Application\CasoDeUso\Auth;
 
 use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;
 use RuntimeException;
 
-class CerrarSesion{
+class CerrarSesion
+{
 
-    private SesionRepositorio $sesionRepositorio
+    private SesionRepositorio $sesionRepositorio;
 
-    public function __construct(SesionRepositorio $sesionRepositorio ) {
-        
+    public function __construct(SesionRepositorio $sesionRepositorio)
+    {
+
         $this->sesionRepositorio = $sesionRepositorio;
     }
 
@@ -34,7 +36,7 @@ class CerrarSesion{
         }
 
 
-        $sesion->cerrar();
+
 
         $this->sesionRepositorio->actualizar($sesion);
     }

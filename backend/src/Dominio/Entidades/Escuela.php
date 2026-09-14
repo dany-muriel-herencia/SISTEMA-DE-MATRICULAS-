@@ -21,9 +21,9 @@ class Escuela
         string $descripcion,
         string $director
     ) {
-        if ($idEscuela <= 0) {
+        if ($idEscuela < 0) {
             throw new InvalidArgumentException(
-                'El ID de la escuela debe ser mayor que cero'
+                'El ID de la escuela no puede ser negativo'
             );
         }
 
