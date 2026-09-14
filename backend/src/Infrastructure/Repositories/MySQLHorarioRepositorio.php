@@ -127,15 +127,64 @@ final class MySQLHorarioRepositorio
         ]);
     }
 
+    public function existeConflictoAula(
+        int $idAula,
+        string $diaSemana,
+        string $horaInicio,
+        string $horaFin
+    ): bool {
+        $sql = "
+            SELECT COUNT(*) AS total
+            FROM horario
+            WHERE id_aula = :id_aula
+              AND UPPER(dia_semana) = UPPER(:dia_semana)
+              AND :hora_inicio < hora_fin
+              AND :hora_fin > hora_inicio
+        ";
+
+        $r = $this->one($sql, [
+            ':id_aula'     => $idAula,
+            ':dia_semana'  => $diaSemana,
+            ':hora_inicio' => $horaInicio,
+            ':hora_fin'    => $horaFin
+        ]);
+
+        return isset($r['total']) && ((int) $r['total']) > 0;
+    }
+
+    public function existeConflictoDocente(
+        int $idDocente,
+        string $diaSemana,
+        string $horaInicio,
+        string $horaFin
+    ): bool {
+        $sql = "
+            SELECT COUNT(*) AS total
+            FROM horario h
+            INNER JOIN seccion s ON s.id_seccion = h.id_seccion
+            WHERE s.id_docente = :id_docente
+              AND UPPER(h.dia_semana) = UPPER(:dia_semana)
+              AND :hora_inicio < h.hora_fin
+              AND :hora_fin > h.hora_inicio
+        ";
+
+        $r = $this->one($sql, [
+            ':id_docente'  => $idDocente,
+            ':dia_semana'  => $diaSemana,
+            ':hora_inicio' => $horaInicio,
+            ':hora_fin'    => $horaFin
+        ]);
+
+        return isset($r['total']) && ((int) $r['total']) > 0;
+    }
+
     private function map(array $fila): Horario
     {
         return new Horario(
             (int) $fila['id_horario'],
-            (int) $fila['id_seccion'],
-            (int) $fila['id_aula'],
             (string) $fila['dia_semana'],
-            (string) $fila['hora_inicio'],
-            (string) $fila['hora_fin'],
+            new \DateTimeImmutable($fila['hora_inicio']),
+            new \DateTimeImmutable($fila['hora_fin']),
             (string) $fila['modalidad']
         );
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dominio\Entidades;
 
 use DateTimeImmutable;
@@ -8,6 +10,7 @@ use InvalidArgumentException;
 class Auditoria
 {
     private int $idAuditoria;
+    private int $idUsuario;
     private string $accion;
     private string $tablaAfectada;
     private DateTimeImmutable $fechaHora;
@@ -17,6 +20,7 @@ class Auditoria
 
     public function __construct(
         int $idAuditoria,
+        int $idUsuario,
         string $accion,
         string $tablaAfectada,
         DateTimeImmutable $fechaHora,
@@ -24,9 +28,15 @@ class Auditoria
         ?string $datosNuevos,
         string $ip
     ) {
-        if ($idAuditoria <= 0) {
+        if ($idAuditoria < 0) {
             throw new InvalidArgumentException(
-                'El ID de auditoría debe ser mayor que cero'
+                'El ID de auditoría no puede ser negativo'
+            );
+        }
+
+        if ($idUsuario <= 0) {
+            throw new InvalidArgumentException(
+                'El ID de usuario debe ser mayor que cero'
             );
         }
 
@@ -48,18 +58,24 @@ class Auditoria
             );
         }
 
-        $this->idAuditoria = $idAuditoria;
-        $this->accion = $accion;
-        $this->tablaAfectada = $tablaAfectada;
-        $this->fechaHora = $fechaHora;
+        $this->idAuditoria    = $idAuditoria;
+        $this->idUsuario      = $idUsuario;
+        $this->accion         = $accion;
+        $this->tablaAfectada  = $tablaAfectada;
+        $this->fechaHora      = $fechaHora;
         $this->datosAnteriores = $datosAnteriores;
-        $this->datosNuevos = $datosNuevos;
-        $this->ip = $ip;
+        $this->datosNuevos    = $datosNuevos;
+        $this->ip             = $ip;
     }
 
     public function getIdAuditoria(): int
     {
         return $this->idAuditoria;
+    }
+
+    public function getIdUsuario(): int
+    {
+        return $this->idUsuario;
     }
 
     public function getAccion(): string
@@ -90,5 +106,19 @@ class Auditoria
     public function getIp(): string
     {
         return $this->ip;
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'id_auditoria'     => $this->idAuditoria,
+            'id_usuario'       => $this->idUsuario,
+            'accion'           => $this->accion,
+            'tabla_afectada'   => $this->tablaAfectada,
+            'fecha_hora'       => $this->fechaHora->format('Y-m-d H:i:s'),
+            'datos_anteriores' => $this->datosAnteriores,
+            'datos_nuevos'     => $this->datosNuevos,
+            'ip'               => $this->ip,
+        ];
     }
 }

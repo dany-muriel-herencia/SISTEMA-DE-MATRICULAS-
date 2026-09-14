@@ -15,4 +15,18 @@ interface HorarioRepositorio
     public function actualizar( Horario $horario ): void;
 
     public function eliminar(int $idHorario ): void;
+
+    public function existeConflictoAula(
+        int $idAula,
+        string $diaSemana,
+        string $horaInicio,
+        string $horaFin
+    ): bool;
+
+    public function existeConflictoDocente(
+        int $idDocente,
+        string $diaSemana,
+        string $horaInicio,
+        string $horaFin
+    ): bool;
 }
