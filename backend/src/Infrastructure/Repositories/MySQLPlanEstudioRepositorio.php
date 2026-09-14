@@ -8,11 +8,118 @@ use App\Dominio\Entidades\PlanEstudio;
 use App\Dominio\Repositorios\PlanEstudioRepositorio;
 use DateTimeImmutable;
 
-final class MySQLPlanEstudioRepositorio extends MySQLRepositorioBase implements PlanEstudioRepositorio
+final class MySQLPlanEstudioRepositorio
+    extends MySQLRepositorioBase
+    implements PlanEstudioRepositorio
 {
-    public function buscarPorId(int $id): ?PlanEstudio { $r = $this->one('SELECT * FROM plan_estudio WHERE id_plan = :id', [':id' => $id]); return $r ? $this->map($r) : null; }
-    public function listar(): array { return array_map(fn(array $r): PlanEstudio => $this->map($r), $this->all('SELECT * FROM plan_estudio ORDER BY nombre')); }
-    public function guardar(PlanEstudio $p): void { $this->unsupported('PlanEstudio requiere id_carrera, pero la entidad no lo expone.'); }
-    public function actualizar(PlanEstudio $p): void { $this->exec('UPDATE plan_estudio SET nombre = :nombre, fecha_inicio = :inicio, fecha_fin = :fin, estado = :estado WHERE id_plan = :id', [':id' => $p->getIdPlan(), ':nombre' => $p->getNombre(), ':inicio' => $p->getFechaInicio()->format('Y-m-d'), ':fin' => $p->getFechaFin()?->format('Y-m-d'), ':estado' => (int) $p->getEstado()]); }
-    private function map(array $r): PlanEstudio { return new PlanEstudio((int) $r['id_plan'], (string) $r['nombre'], new DateTimeImmutable($r['fecha_inicio']), isset($r['fecha_fin']) ? new DateTimeImmutable($r['fecha_fin']) : null, (bool) $r['estado']); }
+    public function buscarPorId(int $idPlan): ?PlanEstudio
+    {
+        $sql = "
+            SELECT
+                id_plan,
+                id_carrera,
+                nombre,
+                fecha_inicio,
+                fecha_fin,
+                estado
+            FROM plan_estudio
+            WHERE id_plan = :id_plan
+            LIMIT 1
+        ";
+
+        $resultado = $this->one($sql, [
+            ':id_plan' => $idPlan
+        ]);
+
+        return $resultado
+            ? $this->map($resultado)
+            : null;
+    }
+
+    public function listar(): array
+    {
+        $sql = "
+            SELECT
+                id_plan,
+                id_carrera,
+                nombre,
+                fecha_inicio,
+                fecha_fin,
+                estado
+            FROM plan_estudio
+            ORDER BY nombre ASC
+        ";
+
+        $resultados = $this->all($sql);
+
+        return array_map(
+            fn(array $fila): PlanEstudio => $this->map($fila),
+            $resultados
+        );
+    }
+
+    public function guardar(PlanEstudio $planEstudio): void
+    {
+        $sql = "
+            INSERT INTO plan_estudio (
+                id_carrera,
+                nombre,
+                fecha_inicio,
+                fecha_fin,
+                estado
+            )
+            VALUES (
+                :id_carrera,
+                :nombre,
+                :fecha_inicio,
+                :fecha_fin,
+                :estado
+            )
+        ";
+
+        $this->exec($sql, [
+            ':id_carrera' => $planEstudio->getIdCarrera(),
+            ':nombre' => $planEstudio->getNombre(),
+            ':fecha_inicio' => $planEstudio->getFechaInicio()->format('Y-m-d'),
+            ':fecha_fin' => $planEstudio->getFechaFin()?->format('Y-m-d'),
+            ':estado' => $planEstudio->getEstado()
+        ]);
+    }
+
+    public function actualizar(PlanEstudio $planEstudio): void
+    {
+        $sql = "
+            UPDATE plan_estudio
+            SET
+                id_carrera = :id_carrera,
+                nombre = :nombre,
+                fecha_inicio = :fecha_inicio,
+                fecha_fin = :fecha_fin,
+                estado = :estado
+            WHERE id_plan = :id_plan
+        ";
+
+        $this->exec($sql, [
+            ':id_plan' => $planEstudio->getIdPlan(),
+            ':id_carrera' => $planEstudio->getIdCarrera(),
+            ':nombre' => $planEstudio->getNombre(),
+            ':fecha_inicio' => $planEstudio->getFechaInicio()->format('Y-m-d'),
+            ':fecha_fin' => $planEstudio->getFechaFin()?->format('Y-m-d'),
+            ':estado' => $planEstudio->getEstado()
+        ]);
+    }
+
+    private function map(array $fila): PlanEstudio
+    {
+        return new PlanEstudio(
+            (int) $fila['id_plan'],
+            (int) $fila['id_carrera'],
+            (string) $fila['nombre'],
+            new DateTimeImmutable($fila['fecha_inicio']),
+            $fila['fecha_fin'] !== null
+                ? new DateTimeImmutable($fila['fecha_fin'])
+                : null,
+            (bool) $fila['estado']
+        );
+    }
 }

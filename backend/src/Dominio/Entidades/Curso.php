@@ -15,6 +15,7 @@ class Curso
     private string $ciclo;
     private bool $estado;
 
+
     public function __construct(
         int $idCurso,
         string $nombre,

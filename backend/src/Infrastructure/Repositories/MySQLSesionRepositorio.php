@@ -7,14 +7,182 @@ namespace App\Infrastructure\Repositories;
 use App\Dominio\Entidades\Sesion;
 use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;
+use PDO;
 
-final class MySQLSesionRepositorio extends MySQLRepositorioBase implements SesionRepositorio
+class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepositorio
 {
-    public function buscarPorId(int $id): ?Sesion { $r = $this->one('SELECT * FROM sesion WHERE id_sesion = :id', [':id' => $id]); return $r ? $this->map($r) : null; }
-    public function buscarPorToken(string $token): ?Sesion { $r = $this->one('SELECT * FROM sesion WHERE token = :token', [':token' => $token]); return $r ? $this->map($r) : null; }
-    public function listarPorUsuario(int $idUsuario): array { return array_map(fn(array $r): Sesion => $this->map($r), $this->all('SELECT * FROM sesion WHERE id_usuario = :id ORDER BY fecha_inicio DESC', [':id' => $idUsuario])); }
-    public function guardar(Sesion $s): void { $this->unsupported('Sesion requiere id_usuario, pero la entidad no lo expone.'); }
-    public function actualizar(Sesion $s): void { $this->exec('UPDATE sesion SET token = :token, fecha_inicio = :inicio, fecha_fin = :fin, ip = :ip, activa = :activa WHERE id_sesion = :id', [':id' => $s->getIdSesion(), ':token' => $s->getToken(), ':inicio' => $s->getFechaInicio()->format('Y-m-d H:i:s'), ':fin' => $s->getFechaFin()?->format('Y-m-d H:i:s'), ':ip' => $s->getIp(), ':activa' => (int) $s->getActiva()]); }
-    public function eliminar(int $id): void { $this->exec('DELETE FROM sesion WHERE id_sesion = :id', [':id' => $id]); }
-    private function map(array $r): Sesion { return new Sesion((int) $r['id_sesion'], (string) $r['token'], new DateTimeImmutable($r['fecha_inicio']), isset($r['fecha_fin']) ? new DateTimeImmutable($r['fecha_fin']) : null, (string) ($r['ip'] ?? ''), (bool) $r['activa']); }
+    public function buscarPorId(int $idSesion): ?Sesion
+    {
+        $sql = "
+            SELECT
+                idSesion,
+                idUsuario,
+                token,
+                fechaInicio,
+                fechaFin,
+                ip,
+                activa
+            FROM sesion
+            WHERE idSesion = :idSesion
+        ";
+
+        $row = $this->one($sql, [
+            'idSesion' => $idSesion
+        ]);
+
+        if ($row === null) {
+            return null;
+        }
+
+        return $this->mapearSesion($row);
+    }
+
+    public function buscarPorToken(string $token): ?Sesion
+    {
+        $sql = "
+            SELECT
+                idSesion,
+                idUsuario,
+                token,
+                fechaInicio,
+                fechaFin,
+                ip,
+                activa
+            FROM sesion
+            WHERE token = :token
+        ";
+
+        $row = $this->one($sql, [
+            'token' => $token
+        ]);
+
+        if ($row === null) {
+            return null;
+        }
+
+        return $this->mapearSesion($row);
+    }
+
+    public function listarPorUsuario(int $idUsuario): array
+    {
+        $sql = "
+            SELECT
+                idSesion,
+                idUsuario,
+                token,
+                fechaInicio,
+                fechaFin,
+                ip,
+                activa
+            FROM sesion
+            WHERE idUsuario = :idUsuario
+            ORDER BY fechaInicio DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->execute([
+            'idUsuario' => $idUsuario
+        ]);
+
+        $sesiones = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $sesiones[] = $this->mapearSesion($row);
+        }
+
+        return $sesiones;
+    }
+
+    public function guardar(Sesion $sesion): void
+    {
+        $sql = "
+            INSERT INTO sesion (
+                idSesion,
+                idUsuario,
+                token,
+                fechaInicio,
+                fechaFin,
+                ip,
+                activa
+            )
+            VALUES (
+                :idSesion,
+                :idUsuario,
+                :token,
+                :fechaInicio,
+                :fechaFin,
+                :ip,
+                :activa
+            )
+        ";
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->execute([
+            'idSesion' => $sesion->getIdSesion(),
+            'idUsuario' => $sesion->getIdUsuario(),
+            'token' => $sesion->getToken(),
+            'fechaInicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
+            'fechaFin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
+            'ip' => $sesion->getIp(),
+            'activa' => $sesion->getActiva() ? 1 : 0
+        ]);
+    }
+
+    public function actualizar(Sesion $sesion): void
+    {
+        $sql = "
+            UPDATE sesion
+            SET
+                idUsuario = :idUsuario,
+                token = :token,
+                fechaInicio = :fechaInicio,
+                fechaFin = :fechaFin,
+                ip = :ip,
+                activa = :activa
+            WHERE idSesion = :idSesion
+        ";
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->execute([
+            'idSesion' => $sesion->getIdSesion(),
+            'idUsuario' => $sesion->getIdUsuario(),
+            'token' => $sesion->getToken(),
+            'fechaInicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
+            'fechaFin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
+            'ip' => $sesion->getIp(),
+            'activa' => $sesion->getActiva() ? 1 : 0
+        ]);
+    }
+
+    public function eliminar(int $idSesion): void
+    {
+        $sql = "
+            DELETE FROM sesion
+            WHERE idSesion = :idSesion
+        ";
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->execute([
+            'idSesion' => $idSesion
+        ]);
+    }
+
+    private function mapearSesion(array $row): Sesion
+    {
+        return new Sesion(
+            (int) $row['idSesion'],
+            (int) $row['idUsuario'],
+            $row['token'],
+            new DateTimeImmutable($row['fechaInicio']),
+            $row['fechaFin'] !== null
+                ? new DateTimeImmutable($row['fechaFin'])
+                : null,
+            $row['ip'],
+            (bool) $row['activa']
+        );
+    }
 }

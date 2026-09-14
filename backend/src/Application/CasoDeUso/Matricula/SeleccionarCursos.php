@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Matricula;
+namespace App\Application\CasoDeUso\Matricula;
 
-use App\Domain\Entities\Matricula;
-use App\Domain\Repositories\MatriculaRepositoryInterface;
+use App\Dominio\Entidades\Matricula;
+use App\Dominio\Repositorios\MatriculaRepositorio;
 use DomainException;
 
 class ConsultarMatricula
 {
-    private MatriculaRepositoryInterface $matriculaRepo;
+    private MatriculaRepositorio $matriculaRepo;
 
-    public function __construct(MatriculaRepositoryInterface $matriculaRepo)
+    public function __construct(MatriculaRepositorio $matriculaRepo)
     {
         $this->matriculaRepo = $matriculaRepo;
     }

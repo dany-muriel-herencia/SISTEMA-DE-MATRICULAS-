@@ -285,6 +285,7 @@ CREATE TABLE matricula (
     id_matricula INT AUTO_INCREMENT PRIMARY KEY,
     id_estudiante INT NOT NULL,
     id_periodo INT NOT NULL,
+    codigo_matricula VARCHAR(40) NOT NULL UNIQUE,
     fecha_matricula DATE NOT NULL,
     estado VARCHAR(30) NOT NULL,
     total_creditos INT NOT NULL DEFAULT 0,

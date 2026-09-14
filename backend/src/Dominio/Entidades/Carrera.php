@@ -7,6 +7,7 @@ use InvalidArgumentException;
 class Carrera
 {
     private int $idCarrera;
+    private int $idEscuela;
     private string $nombre;
     private string $codigo;
     private int $duracion;
@@ -14,6 +15,7 @@ class Carrera
 
     public function __construct(
         int $idCarrera,
+        int $idEscuela,
         string $nombre,
         string $codigo,
         int $duracion,
@@ -22,6 +24,12 @@ class Carrera
         if ($idCarrera <= 0) {
             throw new InvalidArgumentException(
                 'El ID de la carrera debe ser mayor que cero'
+            );
+        }
+
+        if ($idEscuela <= 0) {
+            throw new InvalidArgumentException(
+                'El ID de la escuela debe ser mayor que cero'
             );
         }
 
@@ -44,6 +52,7 @@ class Carrera
         }
 
         $this->idCarrera = $idCarrera;
+        $this->idEscuela = $idEscuela;
         $this->nombre = $nombre;
         $this->codigo = $codigo;
         $this->duracion = $duracion;
@@ -53,6 +62,11 @@ class Carrera
     public function getIdCarrera(): int
     {
         return $this->idCarrera;
+    }
+
+    public function getIdEscuela(): int
+    {
+        return $this->idEscuela;
     }
 
     public function getNombre(): string

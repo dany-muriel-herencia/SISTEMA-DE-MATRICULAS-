@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dominio\Entidades;
 
 use InvalidArgumentException;
@@ -7,58 +9,83 @@ use InvalidArgumentException;
 class Seccion
 {
     private int $idSeccion;
+    private int $idCurso;
+    private int $idPeriodo;
+    private int $idDocente;
     private string $codigo;
     private int $vacantes;
     private int $vacantesDisponibles;
-    private string $periodo;
 
     public function __construct(
         int $idSeccion,
+        int $idCurso,
+        int $idPeriodo,
+        int $idDocente,
         string $codigo,
         int $vacantes,
-        int $vacantesDisponibles,
-        string $periodo
+        int $vacantesDisponibles
     ) {
-        if ($idSeccion <= 0) {
-            throw new InvalidArgumentException(
-                'El ID de la sección debe ser mayor que cero'
-            );
+        if ($idSeccion < 0) {
+            throw new InvalidArgumentException('El ID de la sección no puede ser negativo.');
         }
 
-        if (empty(trim($codigo))) {
-            throw new InvalidArgumentException(
-                'El código de la sección es obligatorio'
-            );
+        if ($idCurso <= 0) {
+            throw new InvalidArgumentException('El ID del curso debe ser mayor que cero.');
         }
 
-        if ($vacantes <= 0) {
-            throw new InvalidArgumentException(
-                'La cantidad de vacantes debe ser mayor que cero'
-            );
+        if ($idPeriodo <= 0) {
+            throw new InvalidArgumentException('El ID del periodo debe ser mayor que cero.');
+        }
+
+        if ($idDocente <= 0) {
+            throw new InvalidArgumentException('El ID del docente debe ser mayor que cero.');
+        }
+
+        if (trim($codigo) === '') {
+            throw new InvalidArgumentException('El código de la sección no puede estar vacío.');
+        }
+
+        if ($vacantes < 0) {
+            throw new InvalidArgumentException('La cantidad de vacantes no puede ser negativa.');
         }
 
         if ($vacantesDisponibles < 0) {
-            throw new InvalidArgumentException(
-                'Las vacantes disponibles no pueden ser negativas'
-            );
+            throw new InvalidArgumentException('Las vacantes disponibles no pueden ser negativas.');
         }
 
         if ($vacantesDisponibles > $vacantes) {
             throw new InvalidArgumentException(
-                'Las vacantes disponibles no pueden superar las vacantes totales'
+                'Las vacantes disponibles no pueden ser mayores que las vacantes totales.'
             );
         }
 
         $this->idSeccion = $idSeccion;
-        $this->codigo = $codigo;
+        $this->idCurso = $idCurso;
+        $this->idPeriodo = $idPeriodo;
+        $this->idDocente = $idDocente;
+        $this->codigo = trim($codigo);
         $this->vacantes = $vacantes;
         $this->vacantesDisponibles = $vacantesDisponibles;
-        $this->periodo = $periodo;
     }
 
     public function getIdSeccion(): int
     {
         return $this->idSeccion;
+    }
+
+    public function getIdCurso(): int
+    {
+        return $this->idCurso;
+    }
+
+    public function getIdPeriodo(): int
+    {
+        return $this->idPeriodo;
+    }
+
+    public function getIdDocente(): int
+    {
+        return $this->idDocente;
     }
 
     public function getCodigo(): string
@@ -74,10 +101,5 @@ class Seccion
     public function getVacantesDisponibles(): int
     {
         return $this->vacantesDisponibles;
-    }
-
-    public function getPeriodo(): string
-    {
-        return $this->periodo;
     }
 }

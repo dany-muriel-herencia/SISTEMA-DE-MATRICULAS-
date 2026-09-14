@@ -9,20 +9,21 @@ use App\Application\UseCases\Curso\CrearCurso;
 use App\Application\UseCases\Estudiante\ConsultarEstudiante;
 use App\Application\UseCases\Estudiante\CrearEstudiante;
 use App\Application\UseCases\Estudiante\ListarEstudiantes;
-use App\Application\UseCases\Matricula\AnularMatricula;
-use App\Application\UseCases\Matricula\ConsultarMatricula;
-use App\Application\UseCases\Matricula\RegistrarMatricula;
+use App\Application\CasoDeUso\Matricula\AnularMatricula;
+use App\Application\CasoDeUso\Matricula\ConsultarMatricula;
+use App\Application\CasoDeUso\Matricula\RegistrarMatricula;
 use App\Application\UseCases\PeriodoAcademico\ConsultarPeriodoActivo;
 use App\Application\UseCases\PeriodoAcademico\ListarPeriodos;
 use App\Application\UseCases\Usuario\AutenticarUsuario;
 use App\Application\UseCases\Usuario\ConsultarUsuario;
 use App\Application\UseCases\Usuario\CrearUsuario;
 use App\Infrastructure\Database\Connection;
-use App\Infrastructure\Repositories\MySQLCursoRepository;
-use App\Infrastructure\Repositories\MySQLEstudianteRepository;
-use App\Infrastructure\Repositories\MySQLMatriculaRepository;
-use App\Infrastructure\Repositories\MySQLPeriodoAcademicoRepository;
-use App\Infrastructure\Repositories\MySQLUsuarioRepository;
+use App\Infrastructure\Repositories\MySQLCursoRepositorio;
+use App\Infrastructure\Repositories\MySQLEstudianteRepositorio;
+use App\Infrastructure\Repositories\MySQLMatriculaRepositorio;
+use App\Infrastructure\Repositories\MySQLPeriodoAcademicoRepositorio;
+use App\Infrastructure\Repositories\MySQLSeccionRepositorio;
+use App\Infrastructure\Repositories\MySQLUsuarioRepositorio;
 use App\Presentation\Controllers\AuthController;
 use App\Presentation\Controllers\CursoController;
 use App\Presentation\Controllers\EstudianteController;
@@ -39,11 +40,12 @@ return function (Router $router): void {
 
     // 2. Inyección de Dependencias (Database & Repositories)
     $db = Connection::getInstance();
-    $usuarioRepo = new MySQLUsuarioRepository($db);
-    $estudianteRepo = new MySQLEstudianteRepository($db);
-    $cursoRepo = new MySQLCursoRepository($db);
-    $matriculaRepo = new MySQLMatriculaRepository($db);
-    $periodoRepo = new MySQLPeriodoAcademicoRepository($db);
+    $usuarioRepo = new MySQLUsuarioRepositorio($db);
+    $estudianteRepo = new MySQLEstudianteRepositorio($db);
+    $cursoRepo = new MySQLCursoRepositorio($db);
+    $matriculaRepo = new MySQLMatriculaRepositorio($db);
+    $periodoRepo = new MySQLPeriodoAcademicoRepositorio($db);
+    $seccionRepo = new MySQLSeccionRepositorio($db);
 
     // 3. Casos de Uso
     // Auth & Usuario
@@ -65,7 +67,7 @@ return function (Router $router): void {
     $listarPeriodos = new ListarPeriodos($periodoRepo);
 
     // Matrícula
-    $registrarMatricula = new RegistrarMatricula($matriculaRepo, $estudianteRepo, $periodoRepo, $cursoRepo);
+    $registrarMatricula = new RegistrarMatricula($matriculaRepo, $estudianteRepo, $periodoRepo, $cursoRepo, $seccionRepo);
     $consultarMatricula = new ConsultarMatricula($matriculaRepo);
     $anularMatricula = new AnularMatricula($matriculaRepo);
 
