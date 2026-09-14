@@ -2,37 +2,72 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Curso;
+namespace App\Aplicacion\CasosDeUso\Auth;
 
-use App\Domain\Entities\Curso;
-use App\Domain\Repositories\CursoRepositoryInterface;
-use DomainException;
+use App\Dominio\Entidades\Sesion;
+use App\Dominio\Repositorios\UsuarioRepositorio;
+use App\Dominio\Repositorios\SesionRepositorio;
+use DateTimeImmutable;
+use RuntimeException;
 
-class ConsultarCursos
-{
-    private CursoRepositoryInterface $cursoRepo;
+class IniciarSesion {
+    private UsuarioRepositorio $usuarioRepositorio,
+    private SesionRepositorio $sesionRepositorio
 
-    public function __construct(CursoRepositoryInterface $cursoRepo)
-    {
-        $this->cursoRepo = $cursoRepo;
+    public function __construct(
+        UsuarioRepositorio $usuarioRepositorio,
+        SesionRepositorio $sesionRepositorio
+    ) {
+        $this->usuarioRepositorio = $usuarioRepositorio;
+        $this->sesionRepositorio = $sesionRepositorio;
     }
 
-    public function ejecutarPorId(int $id): Curso
-    {
-        $curso = $this->cursoRepo->buscarPorId($id);
-        if (!$curso) {
-            throw new DomainException("Curso con ID {$id} no encontrado.");
+    public function ejecutar(
+        string $email,
+        string $password,
+        string $ip
+    ): Sesion {
+
+        
+        $usuario = $this->usuarioRepositorio->buscarPorEmail($email);
+
+        if ($usuario === null) {
+            throw new RuntimeException(
+                'Credenciales incorrectas'
+            );
         }
-        return $curso;
-    }
 
-    public function listar(int $limit = 50, int $offset = 0): array
-    {
-        return $this->cursoRepo->listar($limit, $offset);
-    }
+        
+        if (!$usuario->getEstado()) {
+            throw new RuntimeException(
+                'El usuario se encuentra desactivado'
+            );
+        }
 
-    public function listarOfertaPorPeriodoYCarrera(int $periodoId, int $carreraId): array
-    {
-        return $this->cursoRepo->listarOfertaPorPeriodoYCarrera($periodoId, $carreraId);
+        
+        if (!password_verify($password, $usuario->getContrasenha())) {
+            throw new RuntimeException(
+                'Credenciales incorrectas'
+            );
+        }
+
+        
+        $token = bin2hex(random_bytes(32));
+
+        
+        $sesion = new Sesion(
+            1,
+            $usuario->getIdUsuario(),
+            $token,
+            new DateTimeImmutable(),
+            null,
+            $ip,
+            true
+        );
+
+       
+        $this->sesionRepositorio->guardar($sesion);
+
+        return $sesion;
     }
 }

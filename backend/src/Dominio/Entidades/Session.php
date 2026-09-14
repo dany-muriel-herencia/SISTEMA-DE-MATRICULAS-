@@ -8,6 +8,7 @@ use InvalidArgumentException;
 class Sesion
 {
     private int $idSesion;
+    private int $idUsuario;
     private string $token;
     private DateTimeImmutable $fechaInicio;
     private ?DateTimeImmutable $fechaFin;
@@ -16,6 +17,7 @@ class Sesion
 
     public function __construct(
         int $idSesion,
+        int $idUsuario,
         string $token,
         DateTimeImmutable $fechaInicio,
         ?DateTimeImmutable $fechaFin,
@@ -25,6 +27,12 @@ class Sesion
         if ($idSesion <= 0) {
             throw new InvalidArgumentException(
                 'El ID de la sesión debe ser mayor que cero'
+            );
+        }
+
+        if ($idUsuario <= 0) {
+            throw new InvalidArgumentException(
+                'El ID del usuario debe ser mayor que cero'
             );
         }
 
@@ -58,6 +66,10 @@ class Sesion
     {
         return $this->idSesion;
     }
+    public function getIdUsuario(): int
+    {
+        return $this->idUsuario;
+    }
 
     public function getToken(): string
     {
@@ -82,5 +94,15 @@ class Sesion
     public function getActiva(): bool
     {
         return $this->activa;
+    }
+    public function cerrarSesion(): void {
+        if(!this->$activa) {
+            throw new InvalidArgumentException(
+                'La sesión ya está cerrada'
+            );
+        }
+        $this->activa = false;
+        $this->fechaFin = new DateTimeImmutable();
+
     }
 }

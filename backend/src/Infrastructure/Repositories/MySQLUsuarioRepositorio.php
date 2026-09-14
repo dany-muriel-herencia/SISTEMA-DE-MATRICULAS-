@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Infrastructure\Repositories;
 
 use App\Domain\Entities\Usuario;
-use App\Domain\Repositories\UsuarioRepositoryInterface;
+use App\Domain\Repositories\UsuarioRepositorio;
 use App\Domain\ValueObjects\Dni;
 use App\Domain\ValueObjects\Email;
 use PDO;
 
-class MySQLUsuarioRepository implements UsuarioRepositoryInterface
+class MySQLUsuarioRepository implements UsuarioRepositorio
 {
     private PDO $db;
 

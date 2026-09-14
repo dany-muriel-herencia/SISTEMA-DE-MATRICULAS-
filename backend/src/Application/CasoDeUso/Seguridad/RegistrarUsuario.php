@@ -2,32 +2,61 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Docente;
+namespace App\Aplicacion\CasosDeUso\Seguridad;
 
-use App\Domain\Entities\Docente;
-use App\Domain\Repositories\DocenteRepositoryInterface;
-use DomainException;
+use App\Dominio\Entidades\Usuario;
+use App\Dominio\Repositorios\UsuarioRepositorio;
+use RuntimeException;
 
-class ConsultarDocente
+class RegistrarUsuario
 {
-    private DocenteRepositoryInterface $docenteRepo;
+    public function __construct(
+        private UsuarioRepositorio $usuarioRepositorio
+    ) {}
 
-    public function __construct(DocenteRepositoryInterface $docenteRepo)
-    {
-        $this->docenteRepo = $docenteRepo;
-    }
+    public function ejecutar(
+        string $nombre,
+        string $email,
+        string $password,
+        string $rol
+    ): Usuario {
 
-    public function ejecutarPorId(int $id): Docente
-    {
-        $docente = $this->docenteRepo->buscarPorId($id);
-        if (!$docente) {
-            throw new DomainException("Docente con ID {$id} no encontrado.");
+        
+        $usuarioExistente = $this->usuarioRepositorio
+            ->buscarPorEmail($email);
+
+        if ($usuarioExistente !== null) {
+            throw new RuntimeException(
+                'El correo electrónico ya está registrado'
+            );
         }
-        return $docente;
-    }
 
-    public function listar(int $limit = 50, int $offset = 0): array
-    {
-        return $this->docenteRepo->listar($limit, $offset);
+        
+        if (strlen($password) < 8) {
+            throw new RuntimeException(
+                'La contraseña debe tener al menos 8 caracteres'
+            );
+        }
+
+        
+        $hash = password_hash(
+            $password,
+            PASSWORD_DEFAULT
+        );
+
+        
+        $usuario = new Usuario(
+            0,
+            $nombre,
+            $email,
+            $hash,
+            $rol,
+            true
+        );
+
+        
+        $this->usuarioRepositorio->guardar($usuario);
+
+        return $usuario;
     }
 }

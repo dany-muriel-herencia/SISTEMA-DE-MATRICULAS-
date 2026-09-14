@@ -7,12 +7,152 @@ namespace App\Infrastructure\Repositories;
 use App\Dominio\Entidades\Carrera;
 use App\Dominio\Repositorios\CarreraRepositorio;
 
-final class MySQLCarreraRepositorio extends MySQLRepositorioBase implements CarreraRepositorio
+final class MySQLCarreraRepositorio
+    extends MySQLRepositorioBase
+    implements CarreraRepositorio
 {
-    public function buscarPorId(int $id): ?Carrera { $r = $this->one('SELECT * FROM carrera WHERE id_carrera = :id', [':id' => $id]); return $r ? $this->map($r) : null; }
-    public function buscarPorCodigo(string $codigo): ?Carrera { $r = $this->one('SELECT * FROM carrera WHERE codigo = :codigo', [':codigo' => $codigo]); return $r ? $this->map($r) : null; }
-    public function listar(): array { return array_map(fn(array $r): Carrera => $this->map($r), $this->all('SELECT * FROM carrera ORDER BY nombre')); }
-    public function guardar(Carrera $c): void { $this->unsupported('Carrera requiere id_escuela, pero la entidad no lo expone.'); }
-    public function actualizar(Carrera $c): void { $this->exec('UPDATE carrera SET nombre = :nombre, codigo = :codigo, duracion = :duracion, estado = :estado WHERE id_carrera = :id', [':id' => $c->getIdCarrera(), ':nombre' => $c->getNombre(), ':codigo' => $c->getCodigo(), ':duracion' => $c->getDuracion(), ':estado' => (int) $c->getEstado()]); }
-    private function map(array $r): Carrera { return new Carrera((int) $r['id_carrera'], (string) $r['nombre'], (string) $r['codigo'], (int) $r['duracion'], (bool) $r['estado']); }
+    public function buscarPorId(int $idCarrera): ?Carrera
+    {
+        $sql = "
+            SELECT
+                id_carrera,
+                id_escuela,
+                nombre,
+                codigo,
+                duracion,
+                estado
+            FROM carrera
+            WHERE id_carrera = :id_carrera
+            LIMIT 1
+        ";
+
+        $resultado = $this->one(
+            $sql,
+            [
+                ':id_carrera' => $idCarrera
+            ]
+        );
+
+        return $resultado
+            ? $this->map($resultado)
+            : null;
+    }
+
+    public function buscarPorCodigo(string $codigo): ?Carrera
+    {
+        $sql = "
+            SELECT
+                id_carrera,
+                id_escuela,
+                nombre,
+                codigo,
+                duracion,
+                estado
+            FROM carrera
+            WHERE codigo = :codigo
+            LIMIT 1
+        ";
+
+        $resultado = $this->one(
+            $sql,
+            [
+                ':codigo' => $codigo
+            ]
+        );
+
+        return $resultado
+            ? $this->map($resultado)
+            : null;
+    }
+
+    public function listar(): array
+    {
+        $sql = "
+            SELECT
+                id_carrera,
+                id_escuela,
+                nombre,
+                codigo,
+                duracion,
+                estado
+            FROM carrera
+            ORDER BY nombre ASC
+        ";
+
+        $resultados = $this->all($sql);
+
+        return array_map(
+            fn(array $fila): Carrera => $this->map($fila),
+            $resultados
+        );
+    }
+
+    public function guardar(Carrera $carrera): void
+    {
+        $sql = "
+            INSERT INTO carrera (
+                id_escuela,
+                nombre,
+                codigo,
+                duracion,
+                estado
+            )
+            VALUES (
+                :id_escuela,
+                :nombre,
+                :codigo,
+                :duracion,
+                :estado
+            )
+        ";
+
+        $this->exec(
+            $sql,
+            [
+                ':id_escuela' => $carrera->getIdEscuela(),
+                ':nombre' => $carrera->getNombre(),
+                ':codigo' => $carrera->getCodigo(),
+                ':duracion' => $carrera->getDuracion(),
+                ':estado' => $carrera->isEstado()
+            ]
+        );
+    }
+
+    public function actualizar(Carrera $carrera): void
+    {
+        $sql = "
+            UPDATE carrera
+            SET
+                id_escuela = :id_escuela,
+                nombre = :nombre,
+                codigo = :codigo,
+                duracion = :duracion,
+                estado = :estado
+            WHERE id_carrera = :id_carrera
+        ";
+
+        $this->exec(
+            $sql,
+            [
+                ':id_carrera' => $carrera->getIdCarrera(),
+                ':id_escuela' => $carrera->getIdEscuela(),
+                ':nombre' => $carrera->getNombre(),
+                ':codigo' => $carrera->getCodigo(),
+                ':duracion' => $carrera->getDuracion(),
+                ':estado' => $carrera->isEstado()
+            ]
+        );
+    }
+
+    private function map(array $fila): Carrera
+    {
+        return new Carrera(
+            (int) $fila['id_carrera'],
+            (int) $fila['id_escuela'],
+            (string) $fila['nombre'],
+            (string) $fila['codigo'],
+            (int) $fila['duracion'],
+            (bool) $fila['estado']
+        );
+    }
 }

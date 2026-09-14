@@ -2,36 +2,40 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Matricula;
+namespace App\Application\CasoDeUso\Matricula;
 
 use App\Application\DTO\RegistrarMatriculaDTO;
-use App\Domain\Entities\Matricula;
-use App\Domain\Entities\MatriculaDetalle;
-use App\Domain\Repositories\CursoRepositoryInterface;
-use App\Domain\Repositories\EstudianteRepositoryInterface;
-use App\Domain\Repositories\MatriculaRepositoryInterface;
-use App\Domain\Repositories\PeriodoAcademicoRepositoryInterface;
-use App\Domain\ValueObjects\CodigoMatricula;
+use App\Dominio\Entidades\DetalleMatricula;
+use App\Dominio\Entidades\Matricula;
+use App\Dominio\Repositorios\CursoRepositorio;
+use App\Dominio\Repositorios\EstudianteRepositorio;
+use App\Dominio\Repositorios\MatriculaRepositorio;
+use App\Dominio\Repositorios\PeriodoAcademicoRepositorio;
+use App\Dominio\Repositorios\SeccionRepositorio;
+use App\Dominio\ValueObjects\CodigoMatricula;
 use DomainException;
 use RuntimeException;
 
 class RegistrarMatricula
 {
-    private MatriculaRepositoryInterface $matriculaRepo;
-    private EstudianteRepositoryInterface $estudianteRepo;
-    private PeriodoAcademicoRepositoryInterface $periodoRepo;
-    private CursoRepositoryInterface $cursoRepo;
+    private MatriculaRepositorio $matriculaRepo;
+    private EstudianteRepositorio $estudianteRepo;
+    private PeriodoAcademicoRepositorio $periodoRepo;
+    private CursoRepositorio $cursoRepo;
+    private SeccionRepositorio $seccionRepo;
 
     public function __construct(
-        MatriculaRepositoryInterface $matriculaRepo,
-        EstudianteRepositoryInterface $estudianteRepo,
-        PeriodoAcademicoRepositoryInterface $periodoRepo,
-        CursoRepositoryInterface $cursoRepo
+        MatriculaRepositorio $matriculaRepo,
+        EstudianteRepositorio $estudianteRepo,
+        PeriodoAcademicoRepositorio $periodoRepo,
+        CursoRepositorio $cursoRepo,
+        SeccionRepositorio $seccionRepo
     ) {
         $this->matriculaRepo = $matriculaRepo;
         $this->estudianteRepo = $estudianteRepo;
         $this->periodoRepo = $periodoRepo;
         $this->cursoRepo = $cursoRepo;
+        $this->seccionRepo = $seccionRepo;
     }
 
     public function ejecutar(RegistrarMatriculaDTO $dto): Matricula
@@ -41,7 +45,7 @@ class RegistrarMatricula
         if (!$estudiante) {
             throw new DomainException("El estudiante con ID {$dto->getEstudianteId()} no existe.");
         }
-        if (!$estudiante->puedeMatricularse()) {
+        if (!$estudiante->estaActivo()) {
             throw new DomainException("El estudiante no está habilitado para matricularse (Estado: {$estudiante->getEstadoAcademico()}).");
         }
 
@@ -50,102 +54,67 @@ class RegistrarMatricula
         if (!$periodo) {
             throw new DomainException("El periodo académico con ID {$dto->getPeriodoId()} no existe.");
         }
-        if (!$periodo->estaEnPeriodoMatricula()) {
-            throw new DomainException("El periodo académico {$periodo->getCodigo()} no tiene el proceso de matrícula abierto actualmente.");
+        $ahora = new \DateTimeImmutable('now');
+        if ($ahora < $periodo->getFechaMatriculaInicio() || $ahora > $periodo->getFechaMatriculaFin()) {
+            throw new DomainException("El periodo académico {$periodo->getNombre()} no tiene el proceso de matrícula abierto actualmente.");
         }
 
         // 3. Validar si ya cuenta con matrícula en el periodo
-        $matriculaExistente = $this->matriculaRepo->buscarPorEstudianteYPeriodo($estudiante->getId(), $periodo->getId());
-        if ($matriculaExistente && $matriculaExistente->esValida()) {
-            throw new DomainException("El estudiante ya cuenta con una matrícula activa ({$matriculaExistente->getCodigoMatricula()}) en el periodo {$periodo->getCodigo()}.");
+        foreach ($this->matriculaRepo->buscarPorEstudiante($estudiante->getIdUsuario()) as $matriculaExistente) {
+            if ($matriculaExistente->getIdPeriodo() === $periodo->getIdPeriodo() && $matriculaExistente->getEstado() === 'REGISTRADA') {
+                throw new DomainException('El estudiante ya cuenta con una matrícula activa en este periodo.');
+            }
         }
 
         // 4. Validar existencia de las secciones seleccionadas
         $secciones = [];
         $cursosSolicitados = [];
         foreach ($dto->getSecciones() as $seccionId) {
-            $seccion = $this->cursoRepo->buscarSeccionPorId($seccionId);
+            $seccion = $this->seccionRepo->buscarPorId($seccionId);
             if (!$seccion) {
                 throw new DomainException("La sección con ID {$seccionId} no existe.");
             }
-            if ($seccion->getPeriodoId() !== $periodo->getId()) {
-                throw new DomainException("La sección {$seccion->getLetraSeccion()} no pertenece al periodo {$periodo->getCodigo()}.");
+            if ($seccion->getIdPeriodo() !== $periodo->getIdPeriodo()) {
+                throw new DomainException("La sección {$seccion->getCodigo()} no pertenece al periodo {$periodo->getNombre()}.");
             }
-            if (isset($cursosSolicitados[$seccion->getCursoId()])) {
+            if (isset($cursosSolicitados[$seccion->getIdCurso()])) {
                 throw new DomainException("No puede matricularse en dos secciones del mismo curso.");
             }
-            $cursosSolicitados[$seccion->getCursoId()] = true;
+            $cursosSolicitados[$seccion->getIdCurso()] = true;
             $secciones[] = $seccion;
         }
 
-        // 5. Validar prerrequisitos
-        $cursosAprobados = $this->estudianteRepo->obtenerHistorialCursosAprobados($estudiante->getId());
-        foreach ($secciones as $sec) {
-            $prerrequisitos = $this->cursoRepo->obtenerPrerrequisitos($estudiante->getPlanEstudioId(), $sec->getCursoId());
-            foreach ($prerrequisitos as $req) {
-                if (!in_array($req['curso_requisito_id'], $cursosAprobados, true)) {
-                    throw new DomainException("No cumple con el prerrequisito '{$req['curso_requisito_nombre']}' ({$req['curso_requisito_codigo']}) para el curso '{$sec->getCurso()->getNombre()}'.");
-                }
-            }
-        }
-
-        // 6. Validar cruces de horarios
-        $cruces = $this->matriculaRepo->verificarCruceHorarios($dto->getSecciones());
-        if (!empty($cruces)) {
-            $cruce = $cruces[0];
-            throw new DomainException("Existe un cruce de horario entre las secciones seleccionadas: Día {$cruce['dia_semana']} ({$cruce['hora_inicio']} - {$cruce['hora_fin']}).");
-        }
-
-        // 7. Validar vacantes disponibles
-        foreach ($secciones as $sec) {
-            $vacantesActuales = $this->matriculaRepo->verificarCupoSeccionConBloqueo($sec->getId());
-            if ($vacantesActuales <= 0) {
-                throw new DomainException("No hay vacantes disponibles para la sección {$sec->getLetraSeccion()} del curso {$sec->getCurso()->getNombre()}.");
-            }
-        }
-
         // 8. Crear entidad Matrícula
-        $codigoMatricula = CodigoMatricula::generar($periodo->getId(), $estudiante->getId());
-        $matricula = new Matricula(
-            $estudiante->getId(),
-            $periodo->getId(),
-            $codigoMatricula,
-            date('Y-m-d H:i:s'),
-            0,
-            'REGISTRADA',
-            [],
-            $estudiante,
-            $periodo
+        $codigoMatricula = CodigoMatricula::generar($periodo->getIdPeriodo(), $estudiante->getIdUsuario());
+        $totalCreditos = 0;
+        foreach ($secciones as $seccion) {
+            $curso = $this->cursoRepo->buscarPorId($seccion->getIdCurso());
+            if (!$curso) {
+                throw new DomainException("El curso de la sección {$seccion->getCodigo()} no existe.");
+            }
+            $totalCreditos += $curso->getCreditos();
+        }
+
+        if ($totalCreditos <= 0 || $totalCreditos > 22) {
+            throw new DomainException("El total de créditos ({$totalCreditos}) debe estar entre 1 y 22.");
+        }
+
+        $matricula = new Matricula(0, $estudiante->getIdUsuario(), $periodo->getIdPeriodo(), new \DateTimeImmutable('now'), 'REGISTRADA', $totalCreditos);
+        $matricula->setCodigoMatricula($codigoMatricula);
+        $detalles = array_map(
+                fn($seccion): DetalleMatricula => new DetalleMatricula(0, 0, $seccion->getIdSeccion(), 'MATRICULADO'),
+            $secciones
         );
 
-        foreach ($secciones as $sec) {
-            $detalle = new MatriculaDetalle(
-                0,
-                $sec->getId(),
-                $sec->getCurso()->getCreditos(),
-                'MATRICULADO',
-                $sec
-            );
-            $matricula->agregarDetalle($detalle);
-        }
-
-        // 9. Validar límites de créditos
-        if (!$matricula->validarLimiteCreditos()) {
-            throw new DomainException("El total de créditos ({$matricula->getTotalCreditos()}) excede el límite permitido (1 a " . Matricula::MAX_CREDITOS_PERMITIDOS . " créditos).");
-        }
-
-        // 10. Persistir matrícula y decrementar vacantes
-        $matriculaId = $this->matriculaRepo->guardar($matricula);
+        $matriculaId = $this->matriculaRepo->registrarConDetalles($matricula, $detalles);
         if ($matriculaId <= 0) {
             throw new RuntimeException("Error al guardar la matrícula en la base de datos.");
         }
-        $matricula->setId($matriculaId);
-
-        foreach ($matricula->getDetalles() as $detalle) {
-            $detalle->setMatriculaId($matriculaId);
-            $this->matriculaRepo->guardarDetalle($detalle);
-            $this->matriculaRepo->decrementarCupoSeccion($detalle->getSeccionId());
-        }
+        $matricula->setIdMatricula($matriculaId);
+        $matricula->setDetalles(array_map(
+            fn(DetalleMatricula $detalle): DetalleMatricula => new DetalleMatricula($detalle->getIdDetalle(), $matriculaId, $detalle->getIdSeccion(), $detalle->getEstado()),
+            $detalles
+        ));
 
         return $matricula;
     }

@@ -2,43 +2,40 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Curso;
+namespace App\Aplicacion\CasosDeUso\Auth;
 
-use App\Application\DTO\CrearCursoDTO;
-use App\Domain\Entities\Curso;
-use App\Domain\Repositories\CursoRepositoryInterface;
-use DomainException;
+use App\Dominio\Repositorios\SesionRepositorio;
+use DateTimeImmutable;
 use RuntimeException;
 
-class CrearCurso
-{
-    private CursoRepositoryInterface $cursoRepo;
+class CerrarSesion{
 
-    public function __construct(CursoRepositoryInterface $cursoRepo)
-    {
-        $this->cursoRepo = $cursoRepo;
+    private SesionRepositorio $sesionRepositorio
+
+    public function __construct(SesionRepositorio $sesionRepositorio ) {
+        
+        $this->sesionRepositorio = $sesionRepositorio;
     }
 
-    public function ejecutar(CrearCursoDTO $dto): Curso
+    public function ejecutar(string $token): void
     {
-        if ($this->cursoRepo->buscarPorCodigo($dto->getCodigo())) {
-            throw new DomainException("El curso con código '{$dto->getCodigo()}' ya existe.");
+        $sesion = $this->sesionRepositorio->buscarPorToken($token);
+
+        if ($sesion === null) {
+            throw new RuntimeException(
+                'Sesión no encontrada'
+            );
         }
 
-        $curso = new Curso(
-            $dto->getCodigo(),
-            $dto->getNombre(),
-            $dto->getCreditos(),
-            $dto->getHorasTeoricas(),
-            $dto->getHorasPracticas()
-        );
-
-        $id = $this->cursoRepo->guardar($curso);
-        if ($id <= 0) {
-            throw new RuntimeException("No se pudo guardar el curso.");
+        if (!$sesion->getActiva()) {
+            throw new RuntimeException(
+                'La sesión ya está cerrada'
+            );
         }
-        $curso->setId($id);
 
-        return $curso;
+
+        $sesion->cerrar();
+
+        $this->sesionRepositorio->actualizar($sesion);
     }
 }

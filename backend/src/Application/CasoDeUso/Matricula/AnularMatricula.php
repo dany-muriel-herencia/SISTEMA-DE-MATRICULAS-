@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Matricula;
+namespace App\Application\CasoDeUso\Matricula;
 
-use App\Domain\Entities\Matricula;
-use App\Domain\Repositories\MatriculaRepositoryInterface;
+use App\Dominio\Entidades\Matricula;
+use App\Dominio\Repositorios\MatriculaRepositorio;
 use DomainException;
 use RuntimeException;
 
 class AnularMatricula
 {
-    private MatriculaRepositoryInterface $matriculaRepo;
+    private MatriculaRepositorio $matriculaRepo;
 
-    public function __construct(MatriculaRepositoryInterface $matriculaRepo)
+    public function __construct(MatriculaRepositorio $matriculaRepo)
     {
         $this->matriculaRepo = $matriculaRepo;
     }
@@ -32,15 +32,7 @@ class AnularMatricula
         $matricula->anular();
 
         // Actualizar estado en persistencia
-        $exito = $this->matriculaRepo->anular($matriculaId);
-        if (!$exito) {
-            throw new RuntimeException("No se pudo actualizar el estado de anulación en la base de datos.");
-        }
-
-        // Devolver vacantes a las secciones
-        foreach ($matricula->getDetalles() as $detalle) {
-            $this->matriculaRepo->incrementarCupoSeccion($detalle->getSeccionId());
-        }
+        $this->matriculaRepo->actualizar($matricula);
 
         return $matricula;
     }

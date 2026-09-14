@@ -8,6 +8,7 @@ use InvalidArgumentException;
 class ComprobantePago
 {
     private int $idComprobante;
+    private int $idPago;
     private string $tipo;
     private string $numero;
     private string $serie;
@@ -15,6 +16,7 @@ class ComprobantePago
 
     public function __construct(
         int $idComprobante,
+        int $idPago,
         string $tipo,
         string $numero,
         string $serie,
@@ -23,6 +25,12 @@ class ComprobantePago
         if ($idComprobante <= 0) {
             throw new InvalidArgumentException(
                 'El ID del comprobante debe ser mayor que cero'
+            );
+        }
+
+        if ($idPago <= 0) {
+            throw new InvalidArgumentException(
+                'El ID del pago debe ser mayor que cero'
             );
         }
 
@@ -45,6 +53,7 @@ class ComprobantePago
         }
 
         $this->idComprobante = $idComprobante;
+        $this->idPago = $idPago;
         $this->tipo = $tipo;
         $this->numero = $numero;
         $this->serie = $serie;
@@ -54,6 +63,11 @@ class ComprobantePago
     public function getIdComprobante(): int
     {
         return $this->idComprobante;
+    }
+
+    public function getIdPago(): int
+    {
+        return $this->idPago;
     }
 
     public function getTipo(): string

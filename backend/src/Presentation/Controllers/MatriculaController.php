@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Presentation\Controllers;
 
 use App\Application\DTO\RegistrarMatriculaDTO;
-use App\Application\UseCases\Matricula\AnularMatricula;
-use App\Application\UseCases\Matricula\ConsultarMatricula;
-use App\Application\UseCases\Matricula\RegistrarMatricula;
+use App\Application\CasoDeUso\Matricula\AnularMatricula;
+use App\Application\CasoDeUso\Matricula\ConsultarMatricula;
+use App\Application\CasoDeUso\Matricula\RegistrarMatricula;
 use App\Presentation\Responses\ApiResponse;
 use DomainException;
 use InvalidArgumentException;

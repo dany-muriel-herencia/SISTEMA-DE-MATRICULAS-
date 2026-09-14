@@ -2,45 +2,45 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Docente;
+namespace App\Aplicacion\CasosDeUso\Seguridad;
 
-use App\Domain\Entities\Docente;
-use App\Domain\Repositories\DocenteRepositoryInterface;
-use App\Domain\Repositories\UsuarioRepositoryInterface;
-use DomainException;
+use App\Dominio\Repositorios\UsuarioRepositorio;
 use RuntimeException;
 
-class CrearDocente
+class AsignarRol
 {
-    private DocenteRepositoryInterface $docenteRepo;
-    private UsuarioRepositoryInterface $usuarioRepo;
-
     public function __construct(
-        DocenteRepositoryInterface $docenteRepo,
-        UsuarioRepositoryInterface $usuarioRepo
-    ) {
-        $this->docenteRepo = $docenteRepo;
-        $this->usuarioRepo = $usuarioRepo;
-    }
+        private UsuarioRepositorio $usuarioRepositorio
+    ) {}
 
-    public function ejecutar(int $usuarioId, ?string $especialidad = null, ?string $gradoAcademico = null): Docente
-    {
-        $usuario = $this->usuarioRepo->buscarPorId($usuarioId);
-        if (!$usuario) {
-            throw new DomainException("El usuario con ID {$usuarioId} no existe.");
+    public function ejecutar(
+        int $idUsuario,
+        string $rol
+    ): void {
+
+        $usuario = $this->usuarioRepositorio
+            ->buscarPorId($idUsuario);
+
+        if ($usuario === null) {
+            throw new RuntimeException(
+                'Usuario no encontrado'
+            );
         }
 
-        if ($this->docenteRepo->buscarPorUsuarioId($usuarioId)) {
-            throw new DomainException("El usuario ya tiene un perfil docente registrado.");
+        $rolesPermitidos = [
+            'ADMIN',
+            'ESTUDIANTE',
+            'DOCENTE'
+        ];
+
+        if (!in_array($rol, $rolesPermitidos, true)) {
+            throw new RuntimeException(
+                'Rol no válido'
+            );
         }
 
-        $docente = new Docente($usuarioId, $especialidad, $gradoAcademico, $usuario);
-        $id = $this->docenteRepo->guardar($docente);
-        if ($id <= 0) {
-            throw new RuntimeException("No se pudo registrar el perfil docente.");
-        }
-        $docente = new Docente($usuarioId, $especialidad, $gradoAcademico, $usuario, $id);
+        $usuario->cambiarRol($rol);
 
-        return $docente;
+        $this->usuarioRepositorio->actualizar($usuario);
     }
 }

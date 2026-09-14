@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dominio\Entidades;
 
 use InvalidArgumentException;
@@ -7,12 +9,16 @@ use InvalidArgumentException;
 class Curriculum
 {
     private int $idCurriculum;
-    private string $ciclo;
+    private int $idPlan;
+    private int $idCurso;
+    private int $ciclo;
     private bool $obligatorio;
 
     public function __construct(
         int $idCurriculum,
-        string $ciclo,
+        int $idPlan,
+        int $idCurso,
+        int $ciclo,
         bool $obligatorio
     ) {
         if ($idCurriculum <= 0) {
@@ -21,13 +27,27 @@ class Curriculum
             );
         }
 
-        if (empty(trim($ciclo))) {
+        if ($idPlan <= 0) {
             throw new InvalidArgumentException(
-                'El ciclo es obligatorio'
+                'El ID del plan de estudio debe ser mayor que cero'
+            );
+        }
+
+        if ($idCurso <= 0) {
+            throw new InvalidArgumentException(
+                'El ID del curso debe ser mayor que cero'
+            );
+        }
+
+        if ($ciclo <= 0) {
+            throw new InvalidArgumentException(
+                'El ciclo debe ser mayor que cero'
             );
         }
 
         $this->idCurriculum = $idCurriculum;
+        $this->idPlan = $idPlan;
+        $this->idCurso = $idCurso;
         $this->ciclo = $ciclo;
         $this->obligatorio = $obligatorio;
     }
@@ -37,7 +57,17 @@ class Curriculum
         return $this->idCurriculum;
     }
 
-    public function getCiclo(): string
+    public function getIdPlan(): int
+    {
+        return $this->idPlan;
+    }
+
+    public function getIdCurso(): int
+    {
+        return $this->idCurso;
+    }
+
+    public function getCiclo(): int
     {
         return $this->ciclo;
     }

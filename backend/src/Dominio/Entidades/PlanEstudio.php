@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dominio\Entidades;
 
 use DateTimeImmutable;
@@ -8,6 +10,7 @@ use InvalidArgumentException;
 class PlanEstudio
 {
     private int $idPlan;
+    private int $idCarrera;
     private string $nombre;
     private DateTimeImmutable $fechaInicio;
     private ?DateTimeImmutable $fechaFin;
@@ -15,6 +18,7 @@ class PlanEstudio
 
     public function __construct(
         int $idPlan,
+        int $idCarrera,
         string $nombre,
         DateTimeImmutable $fechaInicio,
         ?DateTimeImmutable $fechaFin,
@@ -26,6 +30,12 @@ class PlanEstudio
             );
         }
 
+        if ($idCarrera <= 0) {
+            throw new InvalidArgumentException(
+                'El ID de la carrera debe ser mayor que cero'
+            );
+        }
+
         if (empty(trim($nombre))) {
             throw new InvalidArgumentException(
                 'El nombre del plan de estudio es obligatorio'
@@ -33,6 +43,7 @@ class PlanEstudio
         }
 
         $this->idPlan = $idPlan;
+        $this->idCarrera = $idCarrera;
         $this->nombre = $nombre;
         $this->fechaInicio = $fechaInicio;
         $this->fechaFin = $fechaFin;
@@ -42,6 +53,11 @@ class PlanEstudio
     public function getIdPlan(): int
     {
         return $this->idPlan;
+    }
+
+    public function getIdCarrera(): int
+    {
+        return $this->idCarrera;
     }
 
     public function getNombre(): string
