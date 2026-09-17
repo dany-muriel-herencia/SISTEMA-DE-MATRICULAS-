@@ -118,6 +118,8 @@ class CrearHorarioSeccion
         // Fictional ID 1 for instantiation before DB insert
         $horario = new Horario(
             1,
+            $idSeccion,
+            $idAula,
             $diaSemana,
             $inicioObj,
             $finObj,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\CasoDeUso\GestionAcademica;
 
 use App\Dominio\Entidades\PeriodoAcademico;
-use App\Dominio\Repositorios\PeriodoAcademicoRepositoryInterface;
+use App\Dominio\Repositorios\PeriodoAcademicoRepositorio;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
@@ -15,9 +15,9 @@ use InvalidArgumentException;
  */
 class GestionarPeriodoAcademico
 {
-    private PeriodoAcademicoRepositoryInterface $periodoRepo;
+    private PeriodoAcademicoRepositorio $periodoRepo;
 
-    public function __construct(PeriodoAcademicoRepositoryInterface $periodoRepo)
+    public function __construct(PeriodoAcademicoRepositorio $periodoRepo)
     {
         $this->periodoRepo = $periodoRepo;
     }

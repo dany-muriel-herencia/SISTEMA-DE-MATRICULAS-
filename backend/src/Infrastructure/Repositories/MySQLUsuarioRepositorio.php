@@ -4,101 +4,173 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Repositories;
 
-use App\Domain\Entities\Usuario;
-use App\Domain\Repositories\UsuarioRepositorio;
-use App\Domain\ValueObjects\Dni;
-use App\Domain\ValueObjects\Email;
+use App\Dominio\Entidades\Usuario;
+use App\Dominio\Repositorios\UsuarioRepositorio;
+use DateTimeImmutable;
 use PDO;
 
-class MySQLUsuarioRepository implements UsuarioRepositorio
+final class MySQLUsuarioRepositorio extends MySQLRepositorioBase implements UsuarioRepositorio
 {
-    private PDO $db;
-
-    public function __construct(PDO $db)
+    public function buscarPorId(int $idUsuario): ?Usuario
     {
-        $this->db = $db;
-    }
+        $sql = "
+            SELECT
+                id_usuario,
+                nombre,
+                email,
+                contrasenha,
+                rol,
+                estado,
+                fecha_creacion
+            FROM usuario
+            WHERE id_usuario = :id_usuario
+            LIMIT 1
+        ";
 
-    public function guardar(Usuario $usuario): int
-    {
-        $sql = "INSERT INTO usuarios (rol_id, dni, email, password_hash, nombre, apellido, telefono, activo, created_at, updated_at)
-                VALUES (:rol_id, :dni, :email, :password_hash, :nombre, :apellido, :telefono, :activo, NOW(), NOW())";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':rol_id' => $usuario->getRolId(),
-            ':dni' => $usuario->getDni()->getValue(),
-            ':email' => $usuario->getEmail()->getValue(),
-            ':password_hash' => $usuario->getPasswordHash(),
-            ':nombre' => $usuario->getNombre(),
-            ':apellido' => $usuario->getApellido(),
-            ':telefono' => $usuario->getTelefono(),
-            ':activo' => $usuario->isActivo() ? 1 : 0,
+        $r = $this->one($sql, [
+            ':id_usuario' => $idUsuario
         ]);
 
-        return (int)$this->db->lastInsertId();
+        return $r ? $this->map($r) : null;
     }
 
-    public function actualizar(Usuario $usuario): bool
+    public function buscarPorEmail(string $email): ?Usuario
     {
-        $sql = "UPDATE usuarios 
-                SET rol_id = :rol_id, dni = :dni, email = :email, nombre = :nombre,
-                    apellido = :apellido, telefono = :telefono, activo = :activo, updated_at = NOW()
-                WHERE id = :id";
+        $sql = "
+            SELECT
+                id_usuario,
+                nombre,
+                email,
+                contrasenha,
+                rol,
+                estado,
+                fecha_creacion
+            FROM usuario
+            WHERE email = :email
+            LIMIT 1
+        ";
 
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            ':id' => $usuario->getId(),
-            ':rol_id' => $usuario->getRolId(),
-            ':dni' => $usuario->getDni()->getValue(),
-            ':email' => $usuario->getEmail()->getValue(),
+        $r = $this->one($sql, [
+            ':email' => $email
+        ]);
+
+        return $r ? $this->map($r) : null;
+    }
+
+    public function guardar(Usuario $usuario): void
+    {
+        if ($usuario->getIdUsuario() > 0) {
+            $sql = "
+                INSERT INTO usuario (
+                    id_usuario,
+                    nombre,
+                    email,
+                    contrasenha,
+                    rol,
+                    estado,
+                    fecha_creacion
+                )
+                VALUES (
+                    :id_usuario,
+                    :nombre,
+                    :email,
+                    :contrasenha,
+                    :rol,
+                    :estado,
+                    :fecha_creacion
+                )
+            ";
+
+            $this->exec($sql, [
+                ':id_usuario' => $usuario->getIdUsuario(),
+                ':nombre' => $usuario->getNombre(),
+                ':email' => $usuario->getEmail(),
+                ':contrasenha' => $usuario->getContrasenha(),
+                ':rol' => $usuario->getRol(),
+                ':estado' => $usuario->getEstado() ? 1 : 0,
+                ':fecha_creacion' => $usuario->getFechaCreacion()->format('Y-m-d H:i:s')
+            ]);
+        } else {
+            $sql = "
+                INSERT INTO usuario (
+                    nombre,
+                    email,
+                    contrasenha,
+                    rol,
+                    estado,
+                    fecha_creacion
+                )
+                VALUES (
+                    :nombre,
+                    :email,
+                    :contrasenha,
+                    :rol,
+                    :estado,
+                    :fecha_creacion
+                )
+            ";
+
+            $this->exec($sql, [
+                ':nombre' => $usuario->getNombre(),
+                ':email' => $usuario->getEmail(),
+                ':contrasenha' => $usuario->getContrasenha(),
+                ':rol' => $usuario->getRol(),
+                ':estado' => $usuario->getEstado() ? 1 : 0,
+                ':fecha_creacion' => $usuario->getFechaCreacion()->format('Y-m-d H:i:s')
+            ]);
+        }
+    }
+
+    public function actualizar(Usuario $usuario): void
+    {
+        $sql = "
+            UPDATE usuario
+            SET
+                nombre = :nombre,
+                email = :email,
+                contrasenha = :contrasenha,
+                rol = :rol,
+                estado = :estado
+            WHERE id_usuario = :id_usuario
+        ";
+
+        $this->exec($sql, [
+            ':id_usuario' => $usuario->getIdUsuario(),
             ':nombre' => $usuario->getNombre(),
-            ':apellido' => $usuario->getApellido(),
-            ':telefono' => $usuario->getTelefono(),
-            ':activo' => $usuario->isActivo() ? 1 : 0,
+            ':email' => $usuario->getEmail(),
+            ':contrasenha' => $usuario->getContrasenha(),
+            ':rol' => $usuario->getRol(),
+            ':estado' => $usuario->getEstado() ? 1 : 0
         ]);
     }
 
-    public function buscarPorId(int $id): ?Usuario
+    public function eliminar(int $idUsuario): void
     {
-        $sql = "SELECT id, rol_id, dni, email, password_hash, nombre, apellido, telefono, activo, created_at, updated_at
-                FROM usuarios WHERE id = :id LIMIT 1";
+        $sql = "
+            DELETE FROM usuario
+            WHERE id_usuario = :id_usuario
+        ";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->hydrate($row) : null;
-    }
-
-    public function buscarPorEmail(Email $email): ?Usuario
-    {
-        $sql = "SELECT id, rol_id, dni, email, password_hash, nombre, apellido, telefono, activo, created_at, updated_at
-                FROM usuarios WHERE email = :email LIMIT 1";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':email' => $email->getValue()]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->hydrate($row) : null;
-    }
-
-    public function buscarPorDni(Dni $dni): ?Usuario
-    {
-        $sql = "SELECT id, rol_id, dni, email, password_hash, nombre, apellido, telefono, activo, created_at, updated_at
-                FROM usuarios WHERE dni = :dni LIMIT 1";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':dni' => $dni->getValue()]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->hydrate($row) : null;
+        $this->exec($sql, [
+            ':id_usuario' => $idUsuario
+        ]);
     }
 
     public function listar(int $limit = 50, int $offset = 0): array
     {
-        $sql = "SELECT id, rol_id, dni, email, password_hash, nombre, apellido, telefono, activo, created_at, updated_at
-                FROM usuarios ORDER BY id DESC LIMIT :limit OFFSET :offset";
+        $sql = "
+            SELECT
+                id_usuario,
+                nombre,
+                email,
+                contrasenha,
+                rol,
+                estado,
+                fecha_creacion
+            FROM usuario
+            ORDER BY id_usuario DESC
+            LIMIT :limit OFFSET :offset
+        ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -106,30 +178,20 @@ class MySQLUsuarioRepository implements UsuarioRepositorio
         $stmt->execute();
 
         $rows = $stmt->fetchAll();
-        return array_map(fn(array $row) => $this->hydrate($row), $rows);
+
+        return array_map(fn(array $r): Usuario => $this->map($r), $rows);
     }
 
-    public function eliminar(int $id): bool
-    {
-        $sql = "DELETE FROM usuarios WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':id' => $id]);
-    }
-
-    private function hydrate(array $row): Usuario
+    private function map(array $r): Usuario
     {
         return new Usuario(
-            (int)$row['rol_id'],
-            new Dni((string)$row['dni']),
-            new Email((string)$row['email']),
-            (string)$row['password_hash'],
-            (string)$row['nombre'],
-            (string)$row['apellido'],
-            $row['telefono'] ? (string)$row['telefono'] : null,
-            (bool)$row['activo'],
-            (int)$row['id'],
-            $row['created_at'] ?? null,
-            $row['updated_at'] ?? null
+            (int) $r['id_usuario'],
+            (string) $r['nombre'],
+            (string) $r['email'],
+            (string) $r['contrasenha'],
+            (string) $r['rol'],
+            (bool) $r['estado'],
+            new DateTimeImmutable((string) $r['fecha_creacion'])
         );
     }
 }

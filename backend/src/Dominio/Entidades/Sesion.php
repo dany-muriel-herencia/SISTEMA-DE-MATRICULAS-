@@ -95,7 +95,14 @@ class Sesion
     {
         return $this->activa;
     }
-    public function cerrarSesion(): void {
+
+    public function isActiva(): bool
+    {
+        return $this->activa;
+    }
+
+    public function cerrarSesion(): void
+    {
         if (!$this->activa) {
             throw new InvalidArgumentException(
                 'La sesión ya está cerrada'
@@ -103,6 +110,5 @@ class Sesion
         }
         $this->activa = false;
         $this->fechaFin = new DateTimeImmutable();
-
     }
 }

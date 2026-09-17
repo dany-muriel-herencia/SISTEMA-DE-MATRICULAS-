@@ -24,9 +24,9 @@ class Usuario
         bool $estado,
         DateTimeImmutable $fechaCreacion
     ) {
-        if ($idUsuario <= 0) {
+        if ($idUsuario < 0) {
             throw new InvalidArgumentException(
-                'El ID del usuario debe ser mayor que cero'
+                'El ID del usuario no puede ser negativo'
             );
         }
 
@@ -87,6 +87,11 @@ class Usuario
         return $this->estado;
     }
 
+    public function isEstado(): bool
+    {
+        return $this->estado;
+    }
+
     public function getFechaCreacion(): DateTimeImmutable
     {
         return $this->fechaCreacion;
@@ -95,5 +100,49 @@ class Usuario
     public function estaActivo(): bool
     {
         return $this->estado;
+    }
+
+    public function cambiarRol(string $nuevoRol): void
+    {
+        $this->rol = $nuevoRol;
+    }
+
+    public function actualizarDatos(string $nombre, string $email): void
+    {
+        if (empty(trim($nombre))) {
+            throw new InvalidArgumentException(
+                'El nombre es obligatorio'
+            );
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException(
+                'El correo electrónico no es válido'
+            );
+        }
+
+        $this->nombre = $nombre;
+        $this->email = $email;
+    }
+
+    public function desactivar(): void
+    {
+        $this->estado = false;
+    }
+
+    public function activar(): void
+    {
+        $this->estado = true;
+    }
+
+    public function cambiarContrasenha(string $nuevaContrasenha): void
+    {
+        if (empty(trim($nuevaContrasenha))) {
+            throw new InvalidArgumentException(
+                'La contraseña es obligatoria'
+            );
+        }
+
+        $this->contrasenha = $nuevaContrasenha;
     }
 }

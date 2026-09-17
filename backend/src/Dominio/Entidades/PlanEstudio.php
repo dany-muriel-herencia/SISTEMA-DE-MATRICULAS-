@@ -79,4 +79,9 @@ class PlanEstudio
     {
         return $this->estado;
     }
+
+    public function getAnio(): string
+    {
+        return $this->fechaInicio->format('Y');
+    }
 }

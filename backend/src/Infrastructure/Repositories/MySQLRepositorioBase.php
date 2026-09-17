@@ -37,6 +37,33 @@ abstract class MySQLRepositorioBase
         return (int) $this->db->lastInsertId();
     }
 
+    protected function lastInsertId(): int
+    {
+        return $this->generatedId();
+    }
+
+    /**
+     * Executes an operation inside a database transaction.
+     *
+     * @param callable(): mixed $callback
+     * @return mixed
+     * @throws \Throwable
+     */
+    protected function transaction(callable $callback): mixed
+    {
+        $this->db->beginTransaction();
+        try {
+            $result = $callback();
+            $this->db->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     protected function unsupported(string $message): never
     {
         throw new RuntimeException($message);

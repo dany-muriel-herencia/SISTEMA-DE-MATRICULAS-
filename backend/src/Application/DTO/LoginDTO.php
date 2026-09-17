@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\DTO;
 
-use App\Domain\ValueObjects\Email;
+use App\Dominio\ValueObjects\Email;
 use InvalidArgumentException;
 
 final class LoginDTO

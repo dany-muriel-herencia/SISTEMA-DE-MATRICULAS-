@@ -10,9 +10,10 @@ use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;
 use RuntimeException;
 
-class IniciarSesion {
-    private UsuarioRepositorio $usuarioRepositorio,
-    private SesionRepositorio $sesionRepositorio
+class IniciarSesion
+{
+    private UsuarioRepositorio $usuarioRepositorio;
+    private SesionRepositorio $sesionRepositorio;
 
     public function __construct(
         UsuarioRepositorio $usuarioRepositorio,
@@ -28,7 +29,7 @@ class IniciarSesion {
         string $ip
     ): Sesion {
 
-        
+
         $usuario = $this->usuarioRepositorio->buscarPorEmail($email);
 
         if ($usuario === null) {
@@ -37,24 +38,24 @@ class IniciarSesion {
             );
         }
 
-        
+
         if (!$usuario->getEstado()) {
             throw new RuntimeException(
                 'El usuario se encuentra desactivado'
             );
         }
 
-        
+
         if (!password_verify($password, $usuario->getContrasenha())) {
             throw new RuntimeException(
                 'Credenciales incorrectas'
             );
         }
 
-        
+
         $token = bin2hex(random_bytes(32));
 
-        
+
         $sesion = new Sesion(
             1,
             $usuario->getIdUsuario(),
@@ -65,7 +66,7 @@ class IniciarSesion {
             true
         );
 
-       
+
         $this->sesionRepositorio->guardar($sesion);
 
         return $sesion;

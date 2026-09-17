@@ -6,6 +6,7 @@ namespace App\Infrastructure\Repositories;
 
 use App\Dominio\Entidades\Horario;
 use App\Dominio\Repositorios\HorarioRepositorio;
+use DateTimeImmutable;
 
 final class MySQLHorarioRepositorio
     extends MySQLRepositorioBase
@@ -81,12 +82,12 @@ final class MySQLHorarioRepositorio
         ";
 
         $this->exec($sql, [
-            ':id_seccion' => $horario->getIdSeccion(),
-            ':id_aula' => $horario->getIdAula(),
-            ':dia_semana' => $horario->getDiaSemana(),
-            ':hora_inicio' => $horario->getHoraInicio(),
-            ':hora_fin' => $horario->getHoraFin(),
-            ':modalidad' => $horario->getModalidad()
+            ':id_seccion'  => $horario->getIdSeccion(),
+            ':id_aula'     => $horario->getIdAula(),
+            ':dia_semana'  => $horario->getDiaSemana(),
+            ':hora_inicio' => $horario->getHoraInicio()->format('H:i:s'),
+            ':hora_fin'    => $horario->getHoraFin()->format('H:i:s'),
+            ':modalidad'   => $horario->getModalidad()
         ]);
     }
 
@@ -105,13 +106,13 @@ final class MySQLHorarioRepositorio
         ";
 
         $this->exec($sql, [
-            ':id_horario' => $horario->getIdHorario(),
-            ':id_seccion' => $horario->getIdSeccion(),
-            ':id_aula' => $horario->getIdAula(),
-            ':dia_semana' => $horario->getDiaSemana(),
-            ':hora_inicio' => $horario->getHoraInicio(),
-            ':hora_fin' => $horario->getHoraFin(),
-            ':modalidad' => $horario->getModalidad()
+            ':id_horario'  => $horario->getIdHorario(),
+            ':id_seccion'  => $horario->getIdSeccion(),
+            ':id_aula'     => $horario->getIdAula(),
+            ':dia_semana'  => $horario->getDiaSemana(),
+            ':hora_inicio' => $horario->getHoraInicio()->format('H:i:s'),
+            ':hora_fin'    => $horario->getHoraFin()->format('H:i:s'),
+            ':modalidad'   => $horario->getModalidad()
         ]);
     }
 
@@ -182,9 +183,11 @@ final class MySQLHorarioRepositorio
     {
         return new Horario(
             (int) $fila['id_horario'],
+            (int) ($fila['id_seccion'] ?? 0),
+            (int) ($fila['id_aula'] ?? 0),
             (string) $fila['dia_semana'],
-            new \DateTimeImmutable($fila['hora_inicio']),
-            new \DateTimeImmutable($fila['hora_fin']),
+            new DateTimeImmutable($fila['hora_inicio']),
+            new DateTimeImmutable($fila['hora_fin']),
             (string) $fila['modalidad']
         );
     }

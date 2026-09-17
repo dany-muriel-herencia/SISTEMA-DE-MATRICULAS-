@@ -36,7 +36,7 @@ class CerrarSesion
         }
 
 
-
+        $sesion->cerrarSesion();
 
         $this->sesionRepositorio->actualizar($sesion);
     }

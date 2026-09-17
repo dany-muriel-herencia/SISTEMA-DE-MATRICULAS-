@@ -117,6 +117,29 @@ final class MySQLPeriodoAcademicoRepositorio
         ]);
     }
 
+    public function listar(): array
+    {
+        $sql = "
+            SELECT
+                id_periodo,
+                nombre,
+                fecha_inicio,
+                fecha_fin,
+                fecha_matricula_inicio,
+                fecha_matricula_fin,
+                estado
+            FROM periodo_academico
+            ORDER BY id_periodo DESC
+        ";
+
+        $resultados = $this->all($sql);
+
+        return array_map(
+            fn(array $r): PeriodoAcademico => $this->map($r),
+            $resultados
+        );
+    }
+
     private function map(array $fila): PeriodoAcademico
     {
         return new PeriodoAcademico(
@@ -126,7 +149,7 @@ final class MySQLPeriodoAcademicoRepositorio
             new DateTimeImmutable($fila['fecha_fin']),
             new DateTimeImmutable($fila['fecha_matricula_inicio']),
             new DateTimeImmutable($fila['fecha_matricula_fin']),
-            (bool) $fila['estado']
+            (string) $fila['estado']
         );
     }
 }

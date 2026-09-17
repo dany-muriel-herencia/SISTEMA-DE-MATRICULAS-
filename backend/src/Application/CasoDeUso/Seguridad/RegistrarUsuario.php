@@ -6,6 +6,7 @@ namespace App\Aplicacion\CasosDeUso\Seguridad;
 
 use App\Dominio\Entidades\Usuario;
 use App\Dominio\Repositorios\UsuarioRepositorio;
+use DateTimeImmutable;
 use RuntimeException;
 
 class RegistrarUsuario
@@ -20,10 +21,7 @@ class RegistrarUsuario
         string $password,
         string $rol
     ): Usuario {
-
-        
-        $usuarioExistente = $this->usuarioRepositorio
-            ->buscarPorEmail($email);
+        $usuarioExistente = $this->usuarioRepositorio->buscarPorEmail($email);
 
         if ($usuarioExistente !== null) {
             throw new RuntimeException(
@@ -31,30 +29,27 @@ class RegistrarUsuario
             );
         }
 
-        
         if (strlen($password) < 8) {
             throw new RuntimeException(
                 'La contraseña debe tener al menos 8 caracteres'
             );
         }
 
-        
         $hash = password_hash(
             $password,
             PASSWORD_DEFAULT
         );
 
-        
         $usuario = new Usuario(
             0,
             $nombre,
             $email,
             $hash,
             $rol,
-            true
+            true,
+            new DateTimeImmutable()
         );
 
-        
         $this->usuarioRepositorio->guardar($usuario);
 
         return $usuario;

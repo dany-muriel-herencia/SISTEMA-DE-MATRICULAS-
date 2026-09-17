@@ -43,9 +43,9 @@ use App\Application\CasoDeUso\Matricula\ConsultarMatricula;
 use App\Application\CasoDeUso\Matricula\RegistrarMatricula;
 use App\Application\UseCases\PeriodoAcademico\ConsultarPeriodoActivo;
 use App\Application\UseCases\PeriodoAcademico\ListarPeriodos;
-use App\Application\UseCases\Usuario\AutenticarUsuario;
-use App\Application\UseCases\Usuario\ConsultarUsuario;
-use App\Application\UseCases\Usuario\CrearUsuario;
+use App\Application\CasoDeUso\Usuario\AutenticarUsuario;
+use App\Application\CasoDeUso\Usuario\ConsultarUsuario;
+use App\Application\CasoDeUso\Usuario\CrearUsuario;
 use App\Infrastructure\Database\Connection;
 use App\Infrastructure\Repositories\MySQLAuditoriaRepositorio;
 use App\Infrastructure\Repositories\MySQLAulaRepositorio;
@@ -153,8 +153,9 @@ return function (Router $router): void {
 
     // Auth & Usuario
     $autenticarUsuario = new AutenticarUsuario($usuarioRepo);
-    $crearUsuario      = new CrearUsuario($usuarioRepo);
+    $registrarUsuario  = new \App\Aplicacion\CasosDeUso\Seguridad\RegistrarUsuario($usuarioRepo);
     $consultarUsuario  = new ConsultarUsuario($usuarioRepo);
+    $gestionarUsuario  = new \App\Aplicacion\CasosDeUso\Seguridad\GestionarUsuario($usuarioRepo);
 
     // Estudiante base
     $crearEstudiante     = new CrearEstudiante($estudianteRepo, $usuarioRepo);
@@ -214,7 +215,7 @@ return function (Router $router): void {
         $exportarReporte
     );
     $authController       = new AuthController($autenticarUsuario);
-    $usuarioController    = new UsuarioController($crearUsuario, $consultarUsuario);
+    $usuarioController    = new UsuarioController($registrarUsuario, $consultarUsuario, $gestionarUsuario);
     $estudianteController = new EstudianteController($crearEstudiante, $consultarEstudiante, $listarEstudiantes);
     $cursoController      = new CursoController($crearCurso, $consultarCursos);
     $periodoController    = new PeriodoAcademicoController($consultarPeriodoActivo, $listarPeriodos);

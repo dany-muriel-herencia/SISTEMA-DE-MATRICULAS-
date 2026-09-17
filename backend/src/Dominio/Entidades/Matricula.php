@@ -6,7 +6,6 @@ namespace App\Dominio\Entidades;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
-use App\Dominio\ValueObjects\CodigoMatricula;
 
 class Matricula
 {
@@ -16,7 +15,7 @@ class Matricula
     private DateTimeImmutable $fechaMatricula;
     private string $estado;
     private int $totalCreditos;
-    private ?CodigoMatricula $codigoMatricula = null;
+    private ?string $codigoMatricula = null;
     /** @var DetalleMatricula[] */
     private array $detalles = [];
 
@@ -107,12 +106,12 @@ class Matricula
         return $this->totalCreditos;
     }
 
-    public function setCodigoMatricula(CodigoMatricula $codigoMatricula): void
+    public function setCodigoMatricula(string $codigoMatricula): void
     {
         $this->codigoMatricula = $codigoMatricula;
     }
 
-    public function getCodigoMatricula(): ?CodigoMatricula
+    public function getCodigoMatricula(): ?string
     {
         return $this->codigoMatricula;
     }
