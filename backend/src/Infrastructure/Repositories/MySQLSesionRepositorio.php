@@ -9,7 +9,7 @@ use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;
 use PDO;
 
-class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepositorio
+class MySQLSesionRepositorio extends MySQLRepositorioBase implements SesionRepositorio
 {
     public function buscarPorId(int $idSesion): ?Sesion
     {

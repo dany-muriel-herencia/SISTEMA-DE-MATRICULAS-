@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Presentation\Middleware;
+namespace App\Presentacion\Middleware;
 
-use App\Presentation\Responses\ApiResponse;
+use App\Presentacion\Responses\ApiResponse;
 
 class RoleMiddleware implements MiddlewareInterface
 {

@@ -187,7 +187,7 @@ $sesionRepo = new class implements SesionRepositorio {
 };
 $sesCtrl = new SesionControlador($sesionRepo);
 $resSes = $sesCtrl->iniciarSesion(['id_usuario' => 1]);
-assertTest('SesionControlador::iniciarSesion', $resSes['success'] === true && !empty($resSes['data']['token']));
+assertTest('SesionControlador::iniciarSesion', $resSes['success'] === true && !empty($resSes['data']['token']), $resSes['message'] ?? 'Error desconocido');
 
 // 6. AuditoriaControlador
 $auditoriaRepo = new class implements AuditoriaRepositorio {

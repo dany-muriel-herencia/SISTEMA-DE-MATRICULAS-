@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Presentation\Routes;
+namespace App\Presentacion\Routes;
 
-use App\Presentation\Responses\ApiResponse;
+use App\Presentacion\Responses\ApiResponse;
 use Closure;
+use ReflectionMethod;
+use ReflectionFunction;
 use Throwable;
 
 class Router
@@ -70,6 +72,10 @@ class Router
             }
         }
 
+        // Obtener cuerpo de petición (JSON o POST)
+        $rawInput = file_get_contents('php://input');
+        $body = !empty($rawInput) ? (json_decode($rawInput, true) ?? $_POST) : $_POST;
+
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) {
                 continue;
@@ -94,12 +100,68 @@ class Router
                 // Invocar Handler
                 $handler = $route['handler'];
                 try {
+                    $response = null;
+
                     if (is_array($handler)) {
                         [$controller, $action] = $handler;
-                        call_user_func_array([$controller, $action], array_values($params));
+                        $refMethod = new ReflectionMethod($controller, $action);
+                        $methodParams = $refMethod->getParameters();
+
+                        $args = [];
+                        foreach ($methodParams as $param) {
+                            $pName = $param->getName();
+                            $pType = $param->getType()?->getName();
+
+                            if (isset($params[$pName])) {
+                                $val = $params[$pName];
+                                $args[] = ($pType === 'int') ? (int)$val : (($pType === 'float') ? (float)$val : (string)$val);
+                            } elseif ($pType === 'array' || $pName === 'datos' || $pName === 'input') {
+                                // Combinar parámetros de ruta con el body
+                                $combined = array_merge($body, $params);
+                                $args[] = $combined;
+                            } else {
+                                $args[] = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+                            }
+                        }
+
+                        $response = $refMethod->invokeArgs($controller, $args);
                     } elseif (is_callable($handler)) {
-                        call_user_func_array($handler, array_values($params));
+                        $refFunc = new ReflectionFunction(Closure::fromCallable($handler));
+                        $funcParams = $refFunc->getParameters();
+
+                        $args = [];
+                        foreach ($funcParams as $param) {
+                            $pName = $param->getName();
+                            $pType = $param->getType()?->getName();
+
+                            if (isset($params[$pName])) {
+                                $val = $params[$pName];
+                                $args[] = ($pType === 'int') ? (int)$val : (($pType === 'float') ? (float)$val : (string)$val);
+                            } elseif ($pType === 'array' || $pName === 'datos' || $pName === 'input') {
+                                $args[] = array_merge($body, $params);
+                            } else {
+                                $args[] = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+                            }
+                        }
+
+                        $response = call_user_func_array($handler, $args);
                     }
+
+                    // Si el controlador retornó un array de respuesta estandarizada
+                    if (is_array($response) && isset($response['success'])) {
+                        $status = $response['success'] 
+                            ? ($method === 'POST' ? 201 : 200) 
+                            : (isset($response['message']) && str_contains(strtolower($response['message']), 'no encontrado') ? 404 : 400);
+
+                        ApiResponse::json(
+                            (bool)$response['success'],
+                            (string)($response['message'] ?? ''),
+                            $response['data'] ?? null,
+                            $status
+                        );
+                        return;
+                    }
+
                     return;
                 } catch (Throwable $e) {
                     ApiResponse::error("Error interno del servidor: " . $e->getMessage(), 500);

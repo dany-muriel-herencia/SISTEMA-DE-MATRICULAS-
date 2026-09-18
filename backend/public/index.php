@@ -61,11 +61,11 @@ if (!empty($appConfig['debug'])) {
 }
 
 // 4. Inicializar Enrutador y Cargar Rutas
-use App\Presentation\Routes\Router;
+use App\Presentacion\Routes\Router;
 
 $router = new Router();
 
-$routesRegistrar = require BASE_PATH . '/src/Presentation/Routes/api.php';
+$routesRegistrar = require BASE_PATH . '/src/Presentacion/Routes/api.php';
 $routesRegistrar($router);
 
 // 5. Despachar Solicitud HTTP

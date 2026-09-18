@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Presentation\Middleware;
+namespace App\Presentacion\Middleware;
 
 interface MiddlewareInterface
 {

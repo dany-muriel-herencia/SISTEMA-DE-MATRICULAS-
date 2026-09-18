@@ -55,6 +55,7 @@ class Sesion
         }
 
         $this->idSesion = $idSesion;
+        $this->idUsuario = $idUsuario;
         $this->token = $token;
         $this->fechaInicio = $fechaInicio;
         $this->fechaFin = $fechaFin;

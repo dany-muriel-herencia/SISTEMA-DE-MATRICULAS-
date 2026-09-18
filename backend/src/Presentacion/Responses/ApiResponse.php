@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Presentation\Responses;
+namespace App\Presentacion\Responses;
 
 class ApiResponse
 {
