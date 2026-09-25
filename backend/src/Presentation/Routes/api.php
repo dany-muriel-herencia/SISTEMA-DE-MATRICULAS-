@@ -90,6 +90,16 @@ return function (Router $router): void {
     $staff = [$authMiddleware, new RoleMiddleware(['ADMIN','COORDINADOR'])];
     $admin = [$authMiddleware, new RoleMiddleware(['ADMIN'])];
 
+    $seccionController = new \App\Presentation\Controllers\SeccionController(
+        new \App\Application\CasoDeUso\Seccion\GestionarProgramacion(
+            new \App\Infrastructure\Repositories\MySQLProgramacionRepositorio($db)
+        )
+    );
+    $router->get('/api/secciones', [$seccionController, 'listar'], [$authMiddleware]);
+    $router->get('/api/secciones/{id}', [$seccionController, 'consultar'], [$authMiddleware]);
+    $router->post('/api/secciones', [$seccionController, 'registrar'], $staff);
+    $router->post('/api/secciones/{id}/horarios', [$seccionController, 'registrarHorario'], $staff);
+
     // ==========================================
     // DEFINICIÓN DE RUTAS DE LA API
     // ==========================================

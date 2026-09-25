@@ -93,6 +93,57 @@ final class ArchitectureTest {
         \App\Infrastructure\Database\Connection::setInstance($db);
         $routes=require dirname(__DIR__).'/src/Presentation/Routes/api.php';
         $routes(new \App\Presentation\Routes\Router()); self::check(true,'Construcción completa de rutas');
+        $programacion = new \App\Application\CasoDeUso\Seccion\GestionarProgramacion(new R\MySQLProgramacionRepositorio($db));
+        $datos = ['id_curso'=>1,'id_periodo'=>1,'id_docente'=>$doc->getIdUsuario(),'codigo'=>'C1-B','vacantes'=>20];
+        $seccion = $programacion->crearSeccion($datos + ['vacantes_disponibles'=>999]);
+        $id = $seccion['id_seccion'];
+        self::check($id > 2 && (int)$seccion['vacantes_disponibles']===20,'Vacantes inicializadas por servidor');
+        self::rejects(fn()=>$programacion->crearSeccion($datos),'Código duplicado por periodo');
+        foreach (['id_curso','id_periodo','id_docente'] as $campo) {
+            self::rejects(fn()=>$programacion->crearSeccion(array_replace($datos,[$campo=>999,'codigo'=>'NUEVA'])),'Referencia inexistente '.$campo);
+        }
+        foreach ([0,-1,1.5,true,[], '1foo'] as $invalido) {
+            self::rejects(fn()=>$programacion->crearSeccion(array_replace($datos,['vacantes'=>$invalido])),'Vacantes inválidas');
+        }
+        self::check(count($programacion->listar(['periodo_id'=>1,'curso_id'=>1]))===2,'Filtro de secciones');
+        self::check($programacion->consultar(999)===null,'Sección inexistente');
+        $horario = ['id_aula'=>1,'dia_semana'=>'MARTES','hora_inicio'=>'08:00','hora_fin'=>'10:00','modalidad'=>'PRESENCIAL'];
+        $guardado = $programacion->crearHorario($id,$horario);
+        self::check($guardado['id_horario']>2 && $guardado['hora_inicio']==='08:00:00','Horario persistido y normalizado');
+        self::rejects(fn()=>$programacion->crearHorario($id,$horario),'Duplicado de horario');
+        self::rejects(fn()=>$programacion->crearHorario($id,array_replace($horario,['hora_inicio'=>'09:00','hora_fin'=>'11:00'])),'Cruce parcial');
+        $programacion->crearHorario($id,array_replace($horario,['hora_inicio'=>'10:00','hora_fin'=>'11:00']));
+        self::check(count($programacion->consultar($id)['horarios'])===2,'Horarios contiguos permitidos y rollback de cruces');
+        $db->exec("INSERT INTO aula VALUES(2,'Otra',NULL,40,NULL,1,1),(3,'Pequeña',NULL,5,NULL,1,1),(4,'Cerrada',NULL,40,NULL,0,1)");
+        $otra = $programacion->crearSeccion(array_replace($datos,['codigo'=>'C1-C']));
+        self::rejects(fn()=>$programacion->crearHorario($otra['id_seccion'],array_replace($horario,['id_aula'=>2])),'Cruce de docente en otra aula');
+        $doc2=new E\Usuario(0,'Docente 2','doc2@example.test','hash','DOCENTE',true,new \DateTimeImmutable()); $usuarios->guardar($doc2);
+        $db->exec("INSERT INTO docente VALUES ({$doc2->getIdUsuario()},'D02','Sistemas','Doctor')");
+        $otraDoc = $programacion->crearSeccion(array_replace($datos,['codigo'=>'C1-D','id_docente'=>$doc2->getIdUsuario()]));
+        self::rejects(fn()=>$programacion->crearHorario($otraDoc['id_seccion'],$horario),'Cruce de aula con otro docente');
+        foreach ([3,4,999] as $aula) {
+            self::rejects(fn()=>$programacion->crearHorario($id,array_replace($horario,['id_aula'=>$aula,'dia_semana'=>'JUEVES'])),'Aula inválida o insuficiente');
+        }
+        foreach ([['hora_inicio'=>'25:00'],['hora_fin'=>'07:00'],['dia_semana'=>'OTRO'],['modalidad'=>'OTRA'],['hora_fin'=>[]]] as $cambio) {
+            self::rejects(fn()=>$programacion->crearHorario($id,array_replace($horario,$cambio)),'Validación de horario');
+        }
+        self::rejects(fn()=>$programacion->crearHorario(999,$horario),'Sección ausente');
+        $db->exec("INSERT INTO periodo_academico VALUES(2,'Otro','2026-01-01','2035-12-31','2020-01-01','2035-12-31','MATRICULA_ABIERTA')");
+        $otroPeriodo = $programacion->crearSeccion(array_replace($datos,['id_periodo'=>2]));
+        $programacion->crearHorario($otroPeriodo['id_seccion'],$horario);
+        self::check(count($programacion->consultar($otroPeriodo['id_seccion'])['horarios'])===1,'Horario y código reutilizables en otro periodo');
+        $inscrito = $registrar->ejecutar(new RegistrarMatriculaDTO($u->getIdUsuario(),1,[$id]));
+        self::rejects(fn()=>$programacion->crearHorario($id,array_replace($horario,['dia_semana'=>'VIERNES'])),'No alterar horario con matrículas');
+        $mr->anularConDetalles($inscrito->getIdMatricula());
+        $programacion->crearHorario($id,array_replace($horario,['dia_semana'=>'VIERNES']));
+        self::check(count($programacion->consultar($id)['horarios'])===3,'Permitir programación tras anulación');
+        $router = new \App\Presentation\Routes\Router(); $routes($router);
+        $prop = new \ReflectionProperty($router,'routes');
+        foreach ($prop->getValue($router) as $ruta) {
+            if (!str_starts_with($ruta['path'],'/api/secciones')) continue;
+            self::check($ruta['middleware'][0] instanceof AuthMiddleware,'Secciones requieren sesión');
+            if ($ruta['method']==='POST') self::check($ruta['middleware'][1] instanceof \App\Presentation\Middleware\RoleMiddleware,'Escritura requiere rol');
+        }
         echo 'PASS: '.self::$checks." comprobaciones; SQLite temporal, sin modificar MySQL.\n";
     }
 }
