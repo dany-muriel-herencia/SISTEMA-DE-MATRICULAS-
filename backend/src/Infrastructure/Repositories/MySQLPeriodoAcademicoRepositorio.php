@@ -126,7 +126,7 @@ final class MySQLPeriodoAcademicoRepositorio
             new DateTimeImmutable($fila['fecha_fin']),
             new DateTimeImmutable($fila['fecha_matricula_inicio']),
             new DateTimeImmutable($fila['fecha_matricula_fin']),
-            (bool) $fila['estado']
+            (string) $fila['estado']
         );
     }
 }
