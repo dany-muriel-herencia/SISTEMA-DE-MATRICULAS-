@@ -1,9 +1,11 @@
 import { ApiClient } from './services/api.js';
+import { createEnrollment } from './enrollment.js';
 
 const $ = (selector) => document.querySelector(selector);
 let user = null, selected = null, courses = [], periods = [], catalogs = { docentes: [], aulas: [] };
 let listVersion = 0, detailVersion = 0;
 const staff = () => ['ADMIN', 'COORDINADOR'].includes(user?.rol);
+const enrollment = createEnrollment({ notice, handleError, refreshSections: loadSections });
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
   if (text !== undefined) element.textContent = text;
@@ -29,6 +31,7 @@ function resetDetail() {
   $('#detail-panel').setAttribute('aria-busy', 'false');
 }
 function clearSession() {
+  enrollment.reset();
   saveToken(''); user = null; listVersion++; resetDetail();
   courses = []; periods = []; catalogs = { docentes: [], aulas: [] };
   $('#sections').replaceChildren();
@@ -66,6 +69,8 @@ async function initialize() {
   const failure = results.find(result => result.status === 'rejected');
   if (failure) throw failure.reason;
   [periods, courses, catalogs] = results.map(result => result.value);
+  await enrollment.initialize(user, courses, periods);
+  if (token !== ApiClient.token) return;
   options($('#period-filter'), periods, 'id_periodo', p => p.nombre, 'Selecciona un periodo');
   options($('#course-filter'), courses, 'id_curso', c => `${c.codigo} · ${c.nombre}`, 'Todos los cursos');
   const active = periods.find(p => p.estado === 'MATRICULA_ABIERTA') || periods[0];

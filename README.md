@@ -27,6 +27,8 @@ Los contratos JSON vigentes se describen en backend/docs/openapi.yaml. Las contr
 
 ## Matrículas
 
+Después de iniciar sesión, abrir **Matrículas** en la navegación. ESTUDIANTE consulta y gestiona únicamente sus propias matrículas; ADMIN y COORDINADOR seleccionan al estudiante. DOCENTE no tiene acceso a este módulo. Se muestran las secciones y sus horarios por periodo, una selección de hasta 22 créditos, un resumen para confirmar el registro y el historial con sus detalles. Solo se puede elegir una sección por curso. La anulación requiere confirmación y actualiza las vacantes mostradas. Las validaciones definitivas de fechas, prerrequisitos, cruces, permisos y disponibilidad se realizan en la API.
+
 El registro valida periodo abierto (incluye el día final), secciones, créditos, vacantes, duplicados, prerrequisitos y cruces de horario. Los prerrequisitos aprobados se consultan en detalle_matricula.estado = APROBADO de matrículas no anuladas. El sistema todavía no incluye una interfaz ni un endpoint para registrar calificaciones: no inferir aprobaciones desde el promedio.
 
 El registro bloquea al estudiante y las secciones en MySQL dentro de una transacción. La anulación devuelve las vacantes de detalles MATRICULADO y los marca ANULADO en la misma transacción.
@@ -56,7 +58,7 @@ Para probar la interfaz sin tocar MySQL, desde la raíz en Git Bash:
 SGAU_TEST_DB="$(cygpath -m "$(mktemp)")" /c/xampp/php/php.exe -S 127.0.0.1:8099 -t . backend/tests/ui_router.php
 ```
 
-Abrir `http://127.0.0.1:8099/frontend/index.html`. El servidor de pruebas crea una base SQLite separada y cuentas ficticias `admin@example.test` y `docente@example.test`, ambas con contraseña `Prueba-local-2026`. Estas cuentas solo existen en esa base temporal. En otra terminal: `SGAU_TEST_URL=http://127.0.0.1:8099 node backend/tests/ui_http_test.mjs` verifica autenticación, catálogos, permisos y revocación por HTTP. Detener el servidor con Ctrl+C al terminar. Nunca publicar este servidor de pruebas.
+Abrir `http://127.0.0.1:8099/frontend/index.html`. El servidor de pruebas crea una base SQLite separada y cuentas ficticias `admin@example.test`, `docente@example.test`, `estudiante@example.test` y `otro@example.test`, con contraseña `Prueba-local-2026`. Estas cuentas solo existen en esa base temporal, junto con un periodo, curso, sección y horario de prueba. Usar una base temporal nueva para obtener todos los datos de esta versión. En otra terminal: `SGAU_TEST_URL=http://127.0.0.1:8099 node backend/tests/ui_http_test.mjs` verifica autenticación, catálogos, permisos, matrícula, aislamiento entre estudiantes, anulación, devolución de vacantes y revocación por HTTP. Detener el servidor con Ctrl+C al terminar. Nunca publicar este servidor de pruebas.
 
 Desde backend: php tests/run_tests.php. Usa SQLite en memoria, carga las clases y rutas y prueba repositorios, sesiones, matrícula y rollback. No modifica MySQL. El bloqueo FOR UPDATE y las migraciones deben verificarse también en una base MySQL/MariaDB de pruebas antes de desplegar.
 

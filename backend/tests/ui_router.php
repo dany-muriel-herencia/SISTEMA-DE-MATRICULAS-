@@ -15,10 +15,15 @@ if (!$db->query("SELECT name FROM sqlite_master WHERE name='usuario'")->fetch())
     $stmt=$db->prepare('INSERT INTO usuario (nombre,email,contrasenha,rol,estado) VALUES (?,?,?,?,1)');
     $stmt->execute(['Administrador de prueba','admin@example.test',password_hash('Prueba-local-2026',PASSWORD_DEFAULT),'ADMIN']);
     $stmt->execute(['Docente de prueba','docente@example.test',password_hash('Prueba-local-2026',PASSWORD_DEFAULT),'DOCENTE']);
+    $stmt->execute(['Estudiante de prueba','estudiante@example.test',password_hash('Prueba-local-2026',PASSWORD_DEFAULT),'ESTUDIANTE']);
+    $stmt->execute(['Otro estudiante','otro@example.test',password_hash('Prueba-local-2026',PASSWORD_DEFAULT),'ESTUDIANTE']);
+    $db->exec("INSERT INTO estudiante VALUES(3,'2026-001','12345678','2000-01-01','2026-01-01',0),(4,'2026-002','12345679','2000-01-01','2026-01-01',0)");
     $db->exec("INSERT INTO docente VALUES(2,'D01','Sistemas','Doctor')");
-    $db->exec("INSERT INTO periodo_academico VALUES(1,'2026-II','2026-08-01','2026-12-31','2026-08-01','2026-10-01','MATRICULA_ABIERTA')");
+    $db->exec("INSERT INTO periodo_academico VALUES(1,'Periodo de prueba','2020-01-01','2099-12-31','2020-01-01','2099-12-31','MATRICULA_ABIERTA')");
     $db->exec("INSERT INTO curso (id_curso,codigo,nombre,creditos,horas_teoria,horas_practica,ciclo,estado) VALUES(1,'CS101','Programación I',4,2,2,'I',1)");
     $db->exec("INSERT INTO aula VALUES(1,'Laboratorio 101',NULL,40,NULL,1,1)");
+    $db->exec("INSERT INTO seccion VALUES(1,1,1,2,'A',30,30)");
+    $db->exec("INSERT INTO horario VALUES(1,1,1,'LUNES','08:00:00','10:00:00','PRESENCIAL')");
 }
 App\Infrastructure\Database\Connection::setInstance($db);
 $router = new App\Presentation\Routes\Router();

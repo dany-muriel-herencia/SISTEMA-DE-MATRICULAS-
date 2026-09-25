@@ -49,3 +49,10 @@ footer { text-align: center; color: #607389; font-size: .8rem; padding: 20px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 850px) { .columns { grid-template-columns: 1fr; } .navbar { flex-wrap: wrap; } .brand small { max-width: 210px; } }
 @media (max-width: 560px) { main { padding: 24px 16px; } .heading { align-items: start; flex-direction: column; } .filters, .form-grid { grid-template-columns: 1fr; } .panel { padding: 18px; } #session { flex-wrap: wrap; } dialog { padding: 20px; } }
+.module-nav { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.module-nav button[aria-pressed="true"] { background: #184a78; color: white; }
+.enrollment-history { margin-top: 24px; }
+.section-choice { display: flex; align-items: center; gap: 10px; }
+.section-choice input { width: 18px; height: 18px; flex: 0 0 auto; }
+#enrollment .schedule button { margin-top: 10px; }
+#enrollment-offer { max-height: 620px; overflow-y: auto; }
