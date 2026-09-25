@@ -10,7 +10,7 @@ use RuntimeException;
 
 class CerrarSesion{
 
-    private SesionRepositorio $sesionRepositorio
+    private SesionRepositorio $sesionRepositorio;
 
     public function __construct(SesionRepositorio $sesionRepositorio ) {
         
@@ -34,7 +34,7 @@ class CerrarSesion{
         }
 
 
-        $sesion->cerrar();
+        $sesion->cerrarSesion();
 
         $this->sesionRepositorio->actualizar($sesion);
     }

@@ -96,7 +96,7 @@ class Sesion
         return $this->activa;
     }
     public function cerrarSesion(): void {
-        if(!this->$activa) {
+        if($this->activa) {
             throw new InvalidArgumentException(
                 'La sesión ya está cerrada'
             );
