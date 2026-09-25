@@ -107,8 +107,8 @@ final class MySQLEscuelaRepositorio
             (int) $fila['id_escuela'],
             (int) $fila['id_facultad'],
             (string) $fila['nombre'],
-            (string) $fila['descripcion'],
-            (string) $fila['director']
+            $fila['descripcion'],
+            $fila['director']
         );
     }
 }

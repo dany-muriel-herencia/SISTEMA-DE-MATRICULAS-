@@ -24,7 +24,7 @@ class Usuario
         bool $estado,
         DateTimeImmutable $fechaCreacion
     ) {
-        if ($idUsuario <= 0) {
+        if ($idUsuario < 0) {
             throw new InvalidArgumentException(
                 'El ID del usuario debe ser mayor que cero'
             );
@@ -52,7 +52,7 @@ class Usuario
         $this->nombre = $nombre;
         $this->email = $email;
         $this->contrasenha = $contrasenha;
-        $this->rol = $rol;
+        $this->cambiarRol($rol);
         $this->estado = $estado;
         $this->fechaCreacion = $fechaCreacion;
     }
@@ -96,4 +96,26 @@ class Usuario
     {
         return $this->estado;
     }
+
+    public function setIdUsuario(int $id): void { $this->idUsuario = $id; }
+    public function cambiarRol(string $rol): void {
+        if (!in_array($rol, ['ADMIN', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'], true)) {
+            throw new InvalidArgumentException('Rol inválido');
+        }
+        $this->rol = $rol;
+    }
+    public function cambiarContrasenha(string $hash): void { $this->contrasenha = $hash; }
+    public function activar(): void { $this->estado = true; }
+    public function desactivar(): void { $this->estado = false; }
+    public function actualizarDatos(string $nombre, string $email): void {
+        if (trim($nombre) === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('Nombre o correo inválido');
+        }
+        $this->nombre = trim($nombre); $this->email = $email;
+    }
+    public function toArray(): array {
+        return ['id_usuario'=>$this->idUsuario, 'nombre'=>$this->nombre, 'email'=>$this->email,
+            'rol'=>$this->rol, 'estado'=>$this->estado, 'fecha_creacion'=>$this->fechaCreacion->format('Y-m-d H:i:s')];
+    }
+
 }

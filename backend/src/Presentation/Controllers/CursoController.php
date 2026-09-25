@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Presentation\Controllers;
 
 use App\Application\DTO\CrearCursoDTO;
-use App\Application\UseCases\Curso\CrearCurso;
-use App\Application\UseCases\Curso\ConsultarCursos;
+use App\Application\CasoDeUso\Curso\CrearCurso;
+use App\Application\CasoDeUso\Curso\ConsultarCursos;
 use App\Presentation\Responses\ApiResponse;
 use DomainException;
 use InvalidArgumentException;
@@ -32,7 +32,8 @@ class CursoController
             $data = array_map(fn($c) => $c->toArray(), $cursos);
             ApiResponse::success($data, "Lista de cursos obtenida.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al listar cursos: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -44,7 +45,8 @@ class CursoController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar curso: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -62,7 +64,8 @@ class CursoController
             $oferta = $this->consultarCursos->listarOfertaPorPeriodoYCarrera($periodoId, $carreraId);
             ApiResponse::success($oferta, "Oferta académica obtenida correctamente.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar oferta académica: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -77,7 +80,8 @@ class CursoController
         } catch (InvalidArgumentException | DomainException $e) {
             ApiResponse::unprocessable($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al registrar curso: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 }

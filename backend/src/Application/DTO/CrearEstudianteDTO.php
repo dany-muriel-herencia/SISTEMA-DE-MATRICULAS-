@@ -1,82 +1,16 @@
 <?php
-
 declare(strict_types=1);
-
 namespace App\Application\DTO;
-
-use InvalidArgumentException;
-
-final class CrearEstudianteDTO
-{
-    private int $usuarioId;
-    private int $carreraId;
-    private int $planEstudioId;
-    private string $codigoEstudiante;
-    private int $anioIngreso;
-    private string $estadoAcademico;
-
-    public function __construct(
-        int $usuarioId,
-        int $carreraId,
-        int $planEstudioId,
-        string $codigoEstudiante,
-        int $anioIngreso,
-        string $estadoAcademico = 'REGULAR'
-    ) {
-        if ($usuarioId <= 0 || $carreraId <= 0 || $planEstudioId <= 0) {
-            throw new InvalidArgumentException("Los IDs de usuario, carrera y plan de estudio deben ser enteros positivos.");
-        }
-        if (empty(trim($codigoEstudiante))) {
-            throw new InvalidArgumentException("El código de estudiante es obligatorio.");
-        }
-
-        $this->usuarioId = $usuarioId;
-        $this->carreraId = $carreraId;
-        $this->planEstudioId = $planEstudioId;
-        $this->codigoEstudiante = trim($codigoEstudiante);
-        $this->anioIngreso = $anioIngreso > 0 ? $anioIngreso : (int)date('Y');
-        $this->estadoAcademico = strtoupper(trim($estadoAcademico));
+final class CrearEstudianteDTO {
+    public function __construct(public readonly int $usuarioId,public readonly string $codigo,public readonly string $dni,public readonly \DateTimeImmutable $nacimiento,public readonly \DateTimeImmutable $ingreso) {
+        if($usuarioId<=0 || trim($codigo)==='' || !preg_match('/^\d{8}$/D',$dni) || $nacimiento >= $ingreso) throw new \InvalidArgumentException('Datos del estudiante inválidos.');
     }
-
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            (int)($data['usuario_id'] ?? 0),
-            (int)($data['carrera_id'] ?? 0),
-            (int)($data['plan_estudio_id'] ?? 0),
-            (string)($data['codigo_estudiante'] ?? $data['codigo'] ?? ''),
-            (int)($data['anio_ingreso'] ?? date('Y')),
-            (string)($data['estado_academico'] ?? 'REGULAR')
-        );
+    private static function fecha(string $value): \DateTimeImmutable {
+        $d=\DateTimeImmutable::createFromFormat('!Y-m-d',$value);
+        if(!$d || $d->format('Y-m-d')!==$value) throw new \InvalidArgumentException('Fecha inválida: use AAAA-MM-DD.');
+        return $d;
     }
-
-    public function getUsuarioId(): int
-    {
-        return $this->usuarioId;
-    }
-
-    public function getCarreraId(): int
-    {
-        return $this->carreraId;
-    }
-
-    public function getPlanEstudioId(): int
-    {
-        return $this->planEstudioId;
-    }
-
-    public function getCodigoEstudiante(): string
-    {
-        return $this->codigoEstudiante;
-    }
-
-    public function getAnioIngreso(): int
-    {
-        return $this->anioIngreso;
-    }
-
-    public function getEstadoAcademico(): string
-    {
-        return $this->estadoAcademico;
+    public static function fromArray(array $d): self {
+        return new self((int)($d['usuario_id']??0),(string)($d['codigo_universitario']??''),(string)($d['dni']??''),self::fecha((string)($d['fecha_nacimiento']??'')),self::fecha((string)($d['fecha_ingreso']??'')));
     }
 }

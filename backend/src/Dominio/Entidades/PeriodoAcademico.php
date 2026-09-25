@@ -91,4 +91,12 @@ class PeriodoAcademico
     {
         return $this->estado;
     }
+
+    public function toArray(): array {
+        return ['id_periodo'=>$this->idPeriodo,'nombre'=>$this->nombre,'estado'=>$this->estado,
+            'fecha_inicio'=>$this->fechaInicio->format('Y-m-d'),'fecha_fin'=>$this->fechaFin->format('Y-m-d'),
+            'fecha_matricula_inicio'=>$this->fechaMatriculaInicio->format('Y-m-d'),
+            'fecha_matricula_fin'=>$this->fechaMatriculaFin->format('Y-m-d')];
+    }
+
 }

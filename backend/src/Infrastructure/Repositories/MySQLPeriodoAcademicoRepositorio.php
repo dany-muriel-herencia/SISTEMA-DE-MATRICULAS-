@@ -49,7 +49,7 @@ final class MySQLPeriodoAcademicoRepositorio
                 fecha_matricula_fin,
                 estado
             FROM periodo_academico
-            WHERE estado = 1
+            WHERE estado IN ('ACTIVO', 'MATRICULA_ABIERTA')
             ORDER BY fecha_inicio DESC
             LIMIT 1
         ";
@@ -129,4 +129,10 @@ final class MySQLPeriodoAcademicoRepositorio
             (string) $fila['estado']
         );
     }
+
+    public function listar(int $limit=50,int $offset=0): array {
+        $limit=max(1,min(200,$limit)); $offset=max(0,$offset);
+        return array_map(fn($r)=>$this->map($r),$this->all("SELECT * FROM periodo_academico ORDER BY fecha_inicio DESC LIMIT $limit OFFSET $offset"));
+    }
+
 }

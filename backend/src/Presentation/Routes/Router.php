@@ -102,7 +102,8 @@ class Router
                     }
                     return;
                 } catch (Throwable $e) {
-                    ApiResponse::error("Error interno del servidor: " . $e->getMessage(), 500);
+                    error_log((string)$e);
+                    ApiResponse::error('Error interno del servidor.', 500);
                     return;
                 }
             }

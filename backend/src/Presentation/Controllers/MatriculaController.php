@@ -44,7 +44,8 @@ class MatriculaController
         } catch (InvalidArgumentException | DomainException $e) {
             ApiResponse::unprocessable($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al procesar la matrícula: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -56,7 +57,8 @@ class MatriculaController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar la matrícula: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -68,7 +70,8 @@ class MatriculaController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar la matrícula: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -79,7 +82,8 @@ class MatriculaController
             $data = array_map(fn($m) => $m->toArray(), $matriculas);
             ApiResponse::success($data, "Historial de matrículas obtenido correctamente.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al listar matrículas: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -94,7 +98,8 @@ class MatriculaController
         } catch (DomainException $e) {
             ApiResponse::unprocessable($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al anular la matrícula: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 }

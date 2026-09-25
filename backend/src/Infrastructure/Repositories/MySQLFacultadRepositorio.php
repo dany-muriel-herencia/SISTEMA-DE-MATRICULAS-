@@ -96,8 +96,8 @@ final class MySQLFacultadRepositorio extends MySQLRepositorioBase implements Fac
         return new Facultad(
             (int) $fila['id_facultad'],
             (string) $fila['nombre'],
-            (string) $fila['descripcion'],
-            (string) $fila['decano']
+            $fila['descripcion'],
+            $fila['decano']
         );
     }
 }

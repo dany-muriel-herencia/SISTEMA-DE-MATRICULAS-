@@ -84,8 +84,8 @@ final class MySQLHorarioRepositorio
             ':id_seccion' => $horario->getIdSeccion(),
             ':id_aula' => $horario->getIdAula(),
             ':dia_semana' => $horario->getDiaSemana(),
-            ':hora_inicio' => $horario->getHoraInicio(),
-            ':hora_fin' => $horario->getHoraFin(),
+            ':hora_inicio' => $horario->getHoraInicio()->format('H:i:s'),
+            ':hora_fin' => $horario->getHoraFin()->format('H:i:s'),
             ':modalidad' => $horario->getModalidad()
         ]);
     }
@@ -109,8 +109,8 @@ final class MySQLHorarioRepositorio
             ':id_seccion' => $horario->getIdSeccion(),
             ':id_aula' => $horario->getIdAula(),
             ':dia_semana' => $horario->getDiaSemana(),
-            ':hora_inicio' => $horario->getHoraInicio(),
-            ':hora_fin' => $horario->getHoraFin(),
+            ':hora_inicio' => $horario->getHoraInicio()->format('H:i:s'),
+            ':hora_fin' => $horario->getHoraFin()->format('H:i:s'),
             ':modalidad' => $horario->getModalidad()
         ]);
     }
@@ -134,8 +134,8 @@ final class MySQLHorarioRepositorio
             (int) $fila['id_seccion'],
             (int) $fila['id_aula'],
             (string) $fila['dia_semana'],
-            (string) $fila['hora_inicio'],
-            (string) $fila['hora_fin'],
+            new \DateTimeImmutable($fila['hora_inicio']),
+            new \DateTimeImmutable($fila['hora_fin']),
             (string) $fila['modalidad']
         );
     }

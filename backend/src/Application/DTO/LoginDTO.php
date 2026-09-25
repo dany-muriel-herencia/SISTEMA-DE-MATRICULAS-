@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\DTO;
 
-use App\Domain\ValueObjects\Email;
+use App\Dominio\ValueObjects\Email;
 use InvalidArgumentException;
 
 final class LoginDTO
@@ -15,7 +15,6 @@ final class LoginDTO
     public function __construct(string $email, string $password)
     {
         $this->email = new Email($email);
-        $password = trim($password);
         if (empty($password)) {
             throw new InvalidArgumentException("La contraseña no puede estar vacía.");
         }

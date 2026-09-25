@@ -126,10 +126,10 @@ final class MySQLAulaRepositorio
                     $aula->getTipo(),
 
                 ':disponible' =>
-                    $aula->isDisponible(),
+                    $aula->getDisponible(),
 
                 ':estado' =>
-                    $aula->isEstado()
+                    $aula->getEstado()
             ]
         );
     }
@@ -168,10 +168,10 @@ final class MySQLAulaRepositorio
                     $aula->getTipo(),
 
                 ':disponible' =>
-                    $aula->isDisponible(),
+                    $aula->getDisponible(),
 
                 ':estado' =>
-                    $aula->isEstado()
+                    $aula->getEstado()
             ]
         );
     }
@@ -183,10 +183,10 @@ final class MySQLAulaRepositorio
             (int) $r['id_aula'],
             (string) $r['nombre'],
             $r['ubicacion'] !== null
-                ? (string) $r['ubicacion']
+                ? $r['ubicacion']
                 : null,
             (int) $r['capacidad'],
-            (string) $r['tipo'],
+            $r['tipo'],
             (bool) $r['disponible'],
             (bool) $r['estado']
         );

@@ -32,7 +32,7 @@ class AnularMatricula
         $matricula->anular();
 
         // Actualizar estado en persistencia
-        $this->matriculaRepo->actualizar($matricula);
+        $this->matriculaRepo->anularConDetalles($matriculaId);
 
         return $matricula;
     }

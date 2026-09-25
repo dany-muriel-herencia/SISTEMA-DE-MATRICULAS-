@@ -13,4 +13,6 @@ interface PeriodoAcademicoRepositorio
     public function guardar(PeriodoAcademico $periodo): void;
 
     public function actualizar(PeriodoAcademico $periodo): void;
+    public function listar(int $limit = 50, int $offset = 0): array;
+
 }

@@ -121,78 +121,12 @@ final class MySQLEstudianteRepositorio extends MySQLRepositorioBase implements E
     }
 
 
-    public function guardar(Estudiante $e): void
-    {
-        $this->transaction(function () use ($e): void {
-
-
-            $this->exec(
-                "
-                INSERT INTO usuario (
-                    nombre,
-                    email,
-                    contrasenha,
-                    rol,
-                    estado
-                )
-                VALUES (
-                    :nombre,
-                    :email,
-                    :contrasenha,
-                    :rol,
-                    :estado
-                )
-                ",
-                [
-                    ':nombre' => $e->getNombre(),
-                    ':email' => $e->getEmail(),
-                    ':contrasenha' => $e->getContrasenha(),
-                    ':rol' => $e->getRol(),
-                    ':estado' => $e->isEstado()
-                ]
-            );
-
-
-            $idUsuario = $this->lastInsertId();
-
-
-            $this->exec(
-                "
-                INSERT INTO estudiante (
-                    id_usuario,
-                    codigo_universitario,
-                    dni,
-                    fecha_nacimiento,
-                    fecha_ingreso,
-                    promedio_academico
-                )
-                VALUES (
-                    :id_usuario,
-                    :codigo,
-                    :dni,
-                    :nacimiento,
-                    :ingreso,
-                    :promedio
-                )
-                ",
-                [
-                    ':id_usuario' => $idUsuario,
-                    ':codigo' => $e->getCodigoUniversitario(),
-                    ':dni' => $e->getDni(),
-                    ':nacimiento' => $e
-                        ->getFechaNacimiento()
-                        ->format('Y-m-d'),
-
-                    ':ingreso' => $e
-                        ->getFechaIngreso()
-                        ->format('Y-m-d'),
-
-                    ':promedio' => $e->getPromedioAcademico()
-                ]
-            );
-        });
+    public function guardar(Estudiante $e): void {
+        $this->exec('INSERT INTO estudiante (id_usuario,codigo_universitario,dni,fecha_nacimiento,fecha_ingreso,promedio_academico) VALUES (:id,:codigo,:dni,:nacimiento,:ingreso,:promedio)',[
+            'id'=>$e->getIdUsuario(),'codigo'=>$e->getCodigoUniversitario(),'dni'=>$e->getDni(),
+            'nacimiento'=>$e->getFechaNacimiento()->format('Y-m-d'),'ingreso'=>$e->getFechaIngreso()->format('Y-m-d'),'promedio'=>$e->getPromedioAcademico()
+        ]);
     }
-
 
     public function actualizar(Estudiante $e): void
     {
@@ -259,4 +193,10 @@ final class MySQLEstudianteRepositorio extends MySQLRepositorioBase implements E
             (float) $r['promedio_academico']
         );
     }
+
+    public function listar(int $limit=50,int $offset=0): array {
+        $limit=max(1,min(200,$limit)); $offset=max(0,$offset);
+        return array_map(fn($r)=>$this->map($r),$this->all("SELECT u.*,e.codigo_universitario,e.dni,e.fecha_nacimiento,e.fecha_ingreso,e.promedio_academico FROM usuario u JOIN estudiante e ON u.id_usuario=e.id_usuario ORDER BY u.id_usuario LIMIT $limit OFFSET $offset"));
+    }
+
 }

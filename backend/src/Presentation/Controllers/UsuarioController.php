@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Presentation\Controllers;
 
 use App\Application\DTO\CrearUsuarioDTO;
-use App\Application\UseCases\Usuario\CrearUsuario;
-use App\Application\UseCases\Usuario\ConsultarUsuario;
+use App\Application\CasoDeUso\Usuario\CrearUsuario;
+use App\Application\CasoDeUso\Usuario\ConsultarUsuario;
 use App\Presentation\Responses\ApiResponse;
 use DomainException;
 use InvalidArgumentException;
@@ -32,7 +32,8 @@ class UsuarioController
             $data = array_map(fn($u) => $u->toArray(), $usuarios);
             ApiResponse::success($data, "Lista de usuarios obtenida.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al listar usuarios: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -44,7 +45,8 @@ class UsuarioController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar usuario: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -59,7 +61,8 @@ class UsuarioController
         } catch (InvalidArgumentException | DomainException $e) {
             ApiResponse::unprocessable($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al registrar usuario: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 }

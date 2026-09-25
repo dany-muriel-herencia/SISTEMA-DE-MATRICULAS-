@@ -1,48 +1,27 @@
--- =============================================================================
--- SEED 001: DATOS INICIALES DEL SISTEMA
--- =============================================================================
-
-USE `db_matricula_unjbg`;
-
--- 1. Roles del Sistema
-INSERT INTO `roles` (`id`, `nombre`, `descripcion`) VALUES
-(1, 'ADMIN', 'Administrador General del Sistema'),
-(2, 'COORDINADOR', 'Coordinador de Escuela Profesional'),
-(3, 'DOCENTE', 'Docente Universitario'),
-(4, 'ESTUDIANTE', 'Estudiante de Pregrado')
-ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
-
--- 2. Usuario Administrador por Defecto
--- Hash bcrypt para 'Admin123*'
-INSERT INTO `usuarios` (`id`, `rol_id`, `dni`, `email`, `password_hash`, `nombre`, `apellido`, `telefono`, `activo`) VALUES
-(1, 1, '00000000', 'admin@unjbg.edu.pe', '$2a$10$wT/3G.mJ6yGzX0bNqP8Z6eB0s7y8bY0n1h6aV5bM7z.P0s9dE2r3a', 'Administrador', 'UNJBG', '952000000', TRUE)
-ON DUPLICATE KEY UPDATE `email` = VALUES(`email`);
-
--- 3. Facultades y Carreras (Ejemplo: FIAG - Ingeniería en Informática y Sistemas)
-INSERT INTO `facultades` (`id`, `codigo`, `nombre`) VALUES
-(1, 'FIAG', 'Facultad de Ingeniería Civil, Arquitectura y Geotecnia'),
-(2, 'FAIN', 'Facultad de Ingeniería')
-ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
-
-INSERT INTO `carreras` (`id`, `facultad_id`, `codigo`, `nombre`, `duracion_semestres`) VALUES
-(1, 2, 'ESIS', 'Ingeniería en Informática y Sistemas', 10),
-(2, 1, 'ESIC', 'Ingeniería Civil', 10)
-ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
-
--- 4. Plan de Estudios
-INSERT INTO `planes_estudio` (`id`, `carrera_id`, `codigo`, `anio`, `activo`) VALUES
-(1, 1, 'PLAN-2023', 2023, TRUE)
-ON DUPLICATE KEY UPDATE `activo` = VALUES(`activo`);
-
--- 5. Periodo Académico
-INSERT INTO `periodos_academicos` (`id`, `codigo`, `anio`, `semestre`, `fecha_inicio`, `fecha_fin`, `fecha_inicio_matricula`, `fecha_fin_matricula`, `estado`) VALUES
-(1, '2026-I', 2026, 'I', '2026-03-15', '2026-07-20', '2026-03-01 08:00:00', '2026-03-14 23:59:59', 'MATRICULA_ABIERTA')
-ON DUPLICATE KEY UPDATE `estado` = VALUES(`estado`);
-
--- 6. Cursos de Muestra
-INSERT INTO `cursos` (`id`, `codigo`, `nombre`, `creditos`, `horas_teoricas`, `horas_practicas`) VALUES
-(1, 'IS-101', 'Introducción a la Programación', 4, 2, 4),
-(2, 'IS-102', 'Cálculo I', 4, 3, 2),
-(3, 'IS-201', 'Estructuras de Datos y Algoritmos', 4, 2, 4),
-(4, 'IS-301', 'Base de Datos I', 4, 2, 4)
-ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
+-- Datos académicos de ejemplo para el esquema actual. No crea cuentas ni contraseñas.
+USE sgau;
+START TRANSACTION;
+INSERT INTO facultad(id_facultad,nombre,descripcion,decano)
+ VALUES(1,'Facultad de Ingeniería','Datos de ejemplo',NULL)
+ ON DUPLICATE KEY UPDATE id_facultad=id_facultad;
+INSERT INTO escuela(id_escuela,id_facultad,nombre,descripcion,director)
+ VALUES(1,1,'Escuela de Informática y Sistemas',NULL,NULL)
+ ON DUPLICATE KEY UPDATE id_escuela=id_escuela;
+INSERT INTO carrera(id_carrera,id_escuela,nombre,codigo,duracion,estado)
+ VALUES(1,1,'Ingeniería en Informática y Sistemas','ESIS',10,1)
+ ON DUPLICATE KEY UPDATE id_carrera=id_carrera;
+INSERT INTO plan_estudio(id_plan,id_carrera,nombre,fecha_inicio,fecha_fin,estado)
+ VALUES(1,1,'Plan 2026','2026-01-01',NULL,1)
+ ON DUPLICATE KEY UPDATE id_plan=id_plan;
+INSERT INTO curso(id_curso,nombre,codigo,creditos,horas_teoria,horas_practica,ciclo,estado)
+ VALUES(1,'Programación I','IS-101',4,2,4,'I',1),(2,'Estructuras de datos','IS-201',4,2,4,'II',1)
+ ON DUPLICATE KEY UPDATE id_curso=id_curso;
+INSERT INTO curriculum(id_curriculum,id_plan,id_curso,ciclo,obligatorio)
+ VALUES(1,1,1,'I',1),(2,1,2,'II',1)
+ ON DUPLICATE KEY UPDATE id_curriculum=id_curriculum;
+INSERT INTO prerequisito(id_prerequisito,id_curso,id_curso_requerido) VALUES(1,2,1)
+ ON DUPLICATE KEY UPDATE id_prerequisito=id_prerequisito;
+INSERT INTO periodo_academico(id_periodo,nombre,fecha_inicio,fecha_fin,fecha_matricula_inicio,fecha_matricula_fin,estado)
+ VALUES(1,'2026-II','2026-08-01','2026-12-31','2026-07-01','2026-07-31','CERRADO')
+ ON DUPLICATE KEY UPDATE id_periodo=id_periodo;
+COMMIT;

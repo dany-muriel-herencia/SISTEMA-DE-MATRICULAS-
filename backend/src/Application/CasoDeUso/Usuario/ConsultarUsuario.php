@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Usuario;
+namespace App\Application\CasoDeUso\Usuario;
 
-use App\Domain\Entities\Usuario;
-use App\Domain\Repositories\UsuarioRepositoryInterface;
+use App\Dominio\Entidades\Usuario;
+use App\Dominio\Repositorios\UsuarioRepositorio;
 use DomainException;
 
 class ConsultarUsuario
 {
-    private UsuarioRepositoryInterface $usuarioRepo;
+    private UsuarioRepositorio $usuarioRepo;
 
-    public function __construct(UsuarioRepositoryInterface $usuarioRepo)
+    public function __construct(UsuarioRepositorio $usuarioRepo)
     {
         $this->usuarioRepo = $usuarioRepo;
     }

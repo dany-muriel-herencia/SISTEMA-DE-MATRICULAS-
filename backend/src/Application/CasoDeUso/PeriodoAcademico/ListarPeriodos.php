@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\PeriodoAcademico;
+namespace App\Application\CasoDeUso\PeriodoAcademico;
 
-use App\Domain\Repositories\PeriodoAcademicoRepositoryInterface;
+use App\Dominio\Repositorios\PeriodoAcademicoRepositorio;
 
 class ListarPeriodos
 {
-    private PeriodoAcademicoRepositoryInterface $periodoRepo;
+    private PeriodoAcademicoRepositorio $periodoRepo;
 
-    public function __construct(PeriodoAcademicoRepositoryInterface $periodoRepo)
+    public function __construct(PeriodoAcademicoRepositorio $periodoRepo)
     {
         $this->periodoRepo = $periodoRepo;
     }

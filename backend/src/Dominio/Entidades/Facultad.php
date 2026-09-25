@@ -8,14 +8,14 @@ class Facultad
 {
     private int $idFacultad;
     private string $nombre;
-    private string $descripcion;
-    private string $decano;
+    private ?string $descripcion;
+    private ?string $decano;
 
     public function __construct(
         int $idFacultad,
         string $nombre,
-        string $descripcion,
-        string $decano
+        ?string $descripcion,
+        ?string $decano
     ) {
         if ($idFacultad <= 0) {
             throw new InvalidArgumentException(
@@ -45,12 +45,12 @@ class Facultad
         return $this->nombre;
     }
 
-    public function getDescripcion(): string
+    public function getDescripcion(): ?string
     {
         return $this->descripcion;
     }
 
-    public function getDecano(): string
+    public function getDecano(): ?string
     {
         return $this->decano;
     }

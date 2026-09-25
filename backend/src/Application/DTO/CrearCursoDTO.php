@@ -19,8 +19,10 @@ final class CrearCursoDTO
         string $nombre,
         int $creditos,
         int $horasTeoricas = 2,
-        int $horasPracticas = 2
+        int $horasPracticas = 2,
+        private string $ciclo = '1'
     ) {
+        if ($horasTeoricas < 0 || $horasPracticas < 0 || trim($ciclo) === '') throw new InvalidArgumentException('Horas o ciclo inválidos.');
         $codigo = trim($codigo);
         $nombre = trim($nombre);
 
@@ -47,8 +49,9 @@ final class CrearCursoDTO
             (string)($data['codigo'] ?? ''),
             (string)($data['nombre'] ?? ''),
             (int)($data['creditos'] ?? 0),
-            (int)($data['horas_teoricas'] ?? 2),
-            (int)($data['horas_practicas'] ?? 2)
+            (int)($data['horas_teoria'] ?? $data['horas_teoricas'] ?? 2),
+            (int)($data['horas_practica'] ?? $data['horas_practicas'] ?? 2),
+            (string)($data['ciclo'] ?? '1')
         );
     }
 
@@ -76,4 +79,6 @@ final class CrearCursoDTO
     {
         return $this->horasPracticas;
     }
+    public function getCiclo(): string { return $this->ciclo; }
+
 }

@@ -91,7 +91,7 @@ final class MySQLConceptoPagoRepositorio
                     $conceptoPago->getMonto(),
 
                 ':obligatorio' =>
-                    $conceptoPago->isObligatorio()
+                    $conceptoPago->esObligatorio()
             ]
         );
     }
@@ -125,7 +125,7 @@ final class MySQLConceptoPagoRepositorio
                     $conceptoPago->getMonto(),
 
                 ':obligatorio' =>
-                    $conceptoPago->isObligatorio()
+                    $conceptoPago->esObligatorio()
             ]
         );
     }
@@ -136,7 +136,7 @@ final class MySQLConceptoPagoRepositorio
             (int) $fila['id_concepto'],
             (string) $fila['nombre'],
             $fila['descripcion'] !== null
-                ? (string) $fila['descripcion']
+                ? $fila['descripcion']
                 : null,
             (float) $fila['monto'],
             (bool) $fila['obligatorio']

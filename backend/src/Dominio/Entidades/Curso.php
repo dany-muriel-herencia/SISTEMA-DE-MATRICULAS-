@@ -26,7 +26,7 @@ class Curso
         string $ciclo,
         bool $estado
     ) {
-        if ($idCurso <= 0) {
+        if ($idCurso < 0) {
             throw new InvalidArgumentException(
                 'El ID del curso debe ser mayor que cero'
             );
@@ -99,4 +99,11 @@ class Curso
     {
         return $this->estado;
     }
+
+    public function setIdCurso(int $id): void { $this->idCurso = $id; }
+    public function toArray(): array {
+        return ['id_curso'=>$this->idCurso,'nombre'=>$this->nombre,'codigo'=>$this->codigo,'creditos'=>$this->creditos,
+            'horas_teoria'=>$this->horasTeoria,'horas_practica'=>$this->horasPractica,'ciclo'=>$this->ciclo,'estado'=>$this->estado];
+    }
+
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Aplicacion\CasosDeUso\Seguridad;
+namespace App\Application\CasoDeUso\Seguridad;
 
 use App\Dominio\Repositorios\UsuarioRepositorio;
 use RuntimeException;

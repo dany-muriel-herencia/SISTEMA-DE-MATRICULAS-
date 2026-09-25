@@ -1,0 +1,7 @@
+# Impedir descargas de código privado, SQL, dependencias y metadatos.
+RewriteEngine On
+RewriteRule ^(?:database|docs|\.git)(?:/|$) - [F,L]
+RewriteRule ^backend/(?!public(?:/|$)) - [F,L]
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

@@ -156,7 +156,7 @@ final class MySQLComprobantePagoRepositorio
             (int) $fila['id_pago'],
             (string) $fila['tipo'],
             (string) $fila['numero'],
-            (string) $fila['serie'],
+            $fila['serie'],
             new DateTimeImmutable(
                 $fila['fecha_emision']
             )

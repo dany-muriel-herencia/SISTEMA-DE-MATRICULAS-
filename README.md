@@ -1,161 +1,38 @@
-# Sistema de Matrícula UNJBG
+# Sistema de Matrículas UNJBG
 
-Plataforma académica modular y escalable para la gestión de matrículas de la **Universidad Nacional Jorge Basadre Grohmann (UNJBG)**.
+Backend PHP 8.2+ con PDO y MySQL/MariaDB. Frontend HTML, CSS y JavaScript para consultar el estado de la API. No requiere Node.js para ejecutarse.
 
----
+## Instalación local
 
-## 🏛️ 1. Arquitectura Técnica
+1. Instalar dependencias: desde backend ejecutar composer install y composer dump-autoload.
+2. Copiar backend/.env.example a backend/.env y configurar la conexión. El nombre predeterminado es sgau.
+3. En una instalación nueva, importar database/schema/01_initial_schema.sql. No volver a importar sobre tablas existentes.
+4. Opcional: importar database/seeds/001_seed_initial_data.sql. Son datos académicos de ejemplo; no incluye usuarios ni contraseñas predeterminadas.
+5. En XAMPP habilitar Apache (mod_rewrite y AllowOverride) y MySQL. Abrir frontend/index.html por HTTP desde la carpeta del proyecto, no con file://.
+6. La API está en backend/public/api. Para comprobarla: backend/public/api/health.
 
-El sistema implementa una **Arquitectura en Capas Desacopladas (Clean Architecture)** orientada a módulos de dominio:
+La migración 002 se aplica solo sobre la base seleccionada con USE sgau; puede ejecutarse después del esquema actual sin duplicar la columna. La migración 001 usa SOURCE con una ruta relativa a la raíz del repositorio y requiere el cliente mysql.
 
-```text
-Cliente / Frontend
-       ↓
-Controller (Express)
-       ↓
-Service / Use Case (Lógica de Negocio Pura)
-       ↓
-Repository (Consultas SQL Parametrizadas)
-       ↓
-Driver Nativo (mysql2/promise)
-       ↓
-Base de Datos MySQL Local
-```
+## Primera cuenta
 
-### 🚫 Restricción de Persistencia: NO ORM
-El proyecto **NO utiliza ORM** (como Sequelize, TypeORM o Prisma). Todo el acceso a datos se efectúa mediante SQL puro y explícito dentro de la capa de Repositorios, empleando parámetros para prevenir vulnerabilidades de inyección SQL.
+No hay registro público de administradores. Desde backend, ejecutar php bin/crear_admin.php y escribir nombre, correo y contraseña cuando se soliciten. La contraseña se guarda con password_hash; usar la consola en un equipo privado.
 
----
+## API y permisos
 
-## 📂 2. Estructura del Proyecto
+POST /api/auth/login recibe email y password y devuelve un token aleatorio asociado a una sesión persistida. Enviar Authorization: Bearer TOKEN en las rutas protegidas. POST /api/auth/logout revoca la sesión. La vigencia se configura con SESSION_EXPIRATION.
 
-```text
-SISTEMA-DE-MATRICULAS-/
-├── backend/
-│   ├── src/
-│   │   ├── config/               # Configuración centralizada (.env)
-│   │   ├── database/             # Pool de MySQL y QueryRunner
-│   │   ├── shared/               # Errores, utilidades y middlewares comunes
-│   │   ├── modules/              # Módulos del dominio
-│   │   │   ├── health/           # Diagnóstico de salud y conexión DB
-│   │   │   ├── auth/             # Autenticación y roles
-│   │   │   ├── estudiantes/      # Gestión de estudiantes
-│   │   │   ├── academico/        # Carreras, planes y cursos
-│   │   │   ├── periodos/         # Periodos académicos
-│   │   │   ├── oferta-academica/ # Secciones, aulas y horarios
-│   │   │   └── matricula/        # Registro y detalle de matrícula
-│   │   ├── routes.js             # Agregador de rutas (/api/v1/*)
-│   │   ├── server.js             # Configuración de Express
-│   │   └── index.js              # Punto de entrada y arranque
-│   ├── .env.example              # Plantilla de variables de entorno
-│   ├── .env                      # Variables locales
-│   └── package.json
-│
-├── frontend/                     # Cliente Web
-│   ├── src/
-│   │   ├── services/api.js       # Cliente API REST
-│   │   ├── styles/main.css       # Sistema de diseño y estilos
-│   │   └── main.js
-│   └── index.html
-│
-├── database/                     # Recursos SQL
-│   ├── schema/                   # DDL de tablas relacionales
-│   ├── migrations/               # Scripts de migración
-│   ├── seeds/                    # Datos iniciales (roles, admin, etc.)
-│   └── queries/                  # Consultas SQL explícitas de referencia
-│
-├── docs/                         # Documentación técnica y diagramas
-│   ├── arquitectura.md
-│   └── diagrama_er.md
-│
-└── README.md
-```
+Usuarios: ADMIN. Estudiantes: ADMIN o COORDINADOR. Lectura de cursos y periodos: usuarios autenticados. Creación de cursos: ADMIN o COORDINADOR. Matrículas: personal autorizado o el propio estudiante; no se acepta un rol enviado en cabeceras.
 
----
+Los contratos JSON vigentes se describen en backend/docs/openapi.yaml. Las contraseñas nunca se incluyen en las respuestas.
 
-## 🚀 3. Guía de Instalación y Ejecución
+## Matrículas
 
-### Prerrequisitos
-* **Node.js**: v18+ o v22 LTS (incluido en Laragon `C:\laragon\bin\nodejs\node-v22`).
-* **MySQL**: 8.x / MariaDB (incluido en Laragon).
+El registro valida periodo abierto (incluye el día final), secciones, créditos, vacantes, duplicados, prerrequisitos y cruces de horario. Los prerrequisitos aprobados se consultan en detalle_matricula.estado = APROBADO de matrículas no anuladas. El sistema todavía no incluye una interfaz ni un endpoint para registrar calificaciones: no inferir aprobaciones desde el promedio.
 
-### Paso 1: Configurar la Base de Datos Local
-1. Inicie MySQL desde el panel de Laragon (o su servicio local de MySQL).
-2. Ejecute el script de creación del esquema en MySQL:
-   ```bash
-   mysql -u root -p < database/schema/01_initial_schema.sql
-   ```
-3. Opcionalmente, cargue los datos iniciales de prueba:
-   ```bash
-   mysql -u root -p < database/seeds/001_seed_initial_data.sql
-   ```
+El registro bloquea al estudiante y las secciones en MySQL dentro de una transacción. La anulación devuelve las vacantes de detalles MATRICULADO y los marca ANULADO en la misma transacción.
 
-### Paso 2: Configurar Variables de Entorno
-En la carpeta `backend/`:
-```bash
-cp .env.example .env
-```
-Edite `.env` con las credenciales de su base de datos local:
-```env
-PORT=3000
-NODE_ENV=development
-API_PREFIX=/api/v1
+## Verificación
 
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=db_matricula_unjbg
-DB_USER=root
-DB_PASSWORD=
-```
+Desde backend: php tests/run_tests.php. Usa SQLite en memoria, carga las clases y rutas y prueba repositorios, sesiones, matrícula y rollback. No modifica MySQL. El bloqueo FOR UPDATE y las migraciones deben verificarse también en una base MySQL/MariaDB de pruebas antes de desplegar.
 
-### Paso 3: Instalar Dependencias del Backend
-Desde el directorio `backend/`:
-```bash
-npm install
-```
-
-### Paso 4: Probar la Conexión a la Base de Datos
-```bash
-npm run test:db
-```
-
-### Paso 5: Iniciar el Servidor Backend
-Modo desarrollo (con recarga automática):
-```bash
-npm run dev
-```
-O modo estándar:
-```bash
-npm start
-```
-
-El servidor estará disponible en `http://localhost:3000`.
-
----
-
-## 📡 4. Endpoints Iniciales Disponibles
-
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/api/v1/health` | Estado del servidor y diagnóstico de conexión a MySQL |
-| `POST` | `/api/v1/auth/login` | Inicio de sesión |
-| `GET` | `/api/v1/estudiantes` | Módulo de estudiantes |
-| `GET` | `/api/v1/cursos` | Módulo académico (cursos/planes) |
-| `GET` | `/api/v1/periodos` | Módulo de periodos académicos |
-| `GET` | `/api/v1/secciones` | Módulo de oferta académica y horarios |
-| `GET` | `/api/v1/matriculas` | Módulo de matrícula |
-
----
-
-## 📋 5. Convenciones de Desarrollo
-* **Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`.
-* **Respuestas JSON Estándar**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Mensaje descriptivo",
-    "data": { ... }
-  }
-  ```
-* **Control de Errores**: Todo error operativo debe extender de `AppError` (`NotFoundError`, `ValidationError`, `DatabaseError`, `UnauthorizedError`).
+La cola de archivos reserva cada trabajo como PROCESSING con bloqueo exclusivo. Un trabajo interrumpido permanece en ese estado y requiere revisión antes de reintentarlo; no hay reintentos automáticos. El worker es una utilidad interna y no está integrado en las rutas HTTP.

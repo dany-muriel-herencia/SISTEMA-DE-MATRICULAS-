@@ -12,7 +12,7 @@ class Sesion
     private string $token;
     private DateTimeImmutable $fechaInicio;
     private ?DateTimeImmutable $fechaFin;
-    private string $ip;
+    private ?string $ip;
     private bool $activa;
 
     public function __construct(
@@ -21,10 +21,10 @@ class Sesion
         string $token,
         DateTimeImmutable $fechaInicio,
         ?DateTimeImmutable $fechaFin,
-        string $ip,
+        ?string $ip,
         bool $activa
     ) {
-        if ($idSesion <= 0) {
+        if ($idSesion < 0) {
             throw new InvalidArgumentException(
                 'El ID de la sesión debe ser mayor que cero'
             );
@@ -42,7 +42,7 @@ class Sesion
             );
         }
 
-        if (empty(trim($ip))) {
+        if ($ip !== null && empty(trim($ip))) {
             throw new InvalidArgumentException(
                 'La dirección IP es obligatoria'
             );
@@ -55,6 +55,7 @@ class Sesion
         }
 
         $this->idSesion = $idSesion;
+        $this->idUsuario = $idUsuario;
         $this->token = $token;
         $this->fechaInicio = $fechaInicio;
         $this->fechaFin = $fechaFin;
@@ -86,7 +87,7 @@ class Sesion
         return $this->fechaFin;
     }
 
-    public function getIp(): string
+    public function getIp(): ?string
     {
         return $this->ip;
     }
@@ -96,7 +97,7 @@ class Sesion
         return $this->activa;
     }
     public function cerrarSesion(): void {
-        if($this->activa) {
+        if (!$this->activa) {
             throw new InvalidArgumentException(
                 'La sesión ya está cerrada'
             );
@@ -105,4 +106,7 @@ class Sesion
         $this->fechaFin = new DateTimeImmutable();
 
     }
+
+    public function setIdSesion(int $id): void { $this->idSesion = $id; }
+
 }

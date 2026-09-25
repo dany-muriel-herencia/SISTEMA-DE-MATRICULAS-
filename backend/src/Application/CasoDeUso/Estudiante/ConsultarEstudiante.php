@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCases\Estudiante;
+namespace App\Application\CasoDeUso\Estudiante;
 
-use App\Domain\Entities\Estudiante;
-use App\Domain\Repositories\EstudianteRepositoryInterface;
+use App\Dominio\Entidades\Estudiante;
+use App\Dominio\Repositorios\EstudianteRepositorio;
 use DomainException;
 
 class ConsultarEstudiante
 {
-    private EstudianteRepositoryInterface $estudianteRepo;
+    private EstudianteRepositorio $estudianteRepo;
 
-    public function __construct(EstudianteRepositoryInterface $estudianteRepo)
+    public function __construct(EstudianteRepositorio $estudianteRepo)
     {
         $this->estudianteRepo = $estudianteRepo;
     }

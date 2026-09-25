@@ -8,18 +8,18 @@ class Aula
 {
     private int $idAula;
     private string $nombre;
-    private string $ubicacion;
+    private ?string $ubicacion;
     private int $capacidad;
-    private string $tipo;
+    private ?string $tipo;
     private bool $disponible;
     private bool $estado;
 
     public function __construct(
         int $idAula,
         string $nombre,
-        string $ubicacion,
+        ?string $ubicacion,
         int $capacidad,
-        string $tipo,
+        ?string $tipo,
         bool $disponible,
         bool $estado
     ) {
@@ -41,7 +41,7 @@ class Aula
             );
         }
 
-        if (empty(trim($tipo))) {
+        if ($tipo !== null && empty(trim($tipo))) {
             throw new InvalidArgumentException(
                 'El tipo de aula es obligatorio'
             );
@@ -66,7 +66,7 @@ class Aula
         return $this->nombre;
     }
 
-    public function getUbicacion(): string
+    public function getUbicacion(): ?string
     {
         return $this->ubicacion;
     }
@@ -76,7 +76,7 @@ class Aula
         return $this->capacidad;
     }
 
-    public function getTipo(): string
+    public function getTipo(): ?string
     {
         return $this->tipo;
     }

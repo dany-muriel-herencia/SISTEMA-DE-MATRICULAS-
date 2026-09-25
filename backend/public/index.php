@@ -18,7 +18,7 @@ if (file_exists($autoloadFile)) {
         if (strncmp($prefix, $class, $len) !== 0) {
             return;
         }
-        $relativeClass = substr($class, $len);
+        $relativeClass = str_replace('Dominio\\Repositorios\\', 'Dominio\\Repositories\\', substr($class, $len));
         $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
         if (file_exists($file)) {
             require $file;
@@ -60,6 +60,12 @@ if (!empty($appConfig['debug'])) {
     error_reporting(0);
 }
 
+set_exception_handler(function (\Throwable $e): void {
+    error_log((string)$e);
+    \App\Presentation\Responses\ApiResponse::error('Error interno del servidor.', 500);
+});
+(new \App\Presentation\Middleware\CorsMiddleware())->handle();
+
 // 4. Inicializar Enrutador y Cargar Rutas
 use App\Presentation\Routes\Router;
 
@@ -75,7 +81,7 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 // Limpiar base path si se ejecuta en subcarpeta en Apache/Laragon (ej. /software%20de%20datos/...)
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $scriptDir = dirname($scriptName);
-if ($scriptDir !== '/' && $scriptDir !== '\\' && str_starts_with($requestUri, $scriptDir)) {
+if (PHP_SAPI !== 'cli-server' && $scriptDir !== '/' && $scriptDir !== '\\' && str_starts_with($requestUri, $scriptDir)) {
     $requestUri = substr($requestUri, strlen($scriptDir));
 }
 

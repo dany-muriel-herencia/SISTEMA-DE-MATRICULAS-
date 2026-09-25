@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Aplicacion\CasosDeUso\Auth;
+namespace App\Application\CasoDeUso\Auth;
 
 use App\Dominio\Entidades\Sesion;
 use App\Dominio\Repositorios\UsuarioRepositorio;
@@ -11,8 +11,8 @@ use DateTimeImmutable;
 use RuntimeException;
 
 class IniciarSesion {
-    private UsuarioRepositorio $usuarioRepositorio,
-    private SesionRepositorio $sesionRepositorio
+    private UsuarioRepositorio $usuarioRepositorio;
+    private SesionRepositorio $sesionRepositorio;
 
     public function __construct(
         UsuarioRepositorio $usuarioRepositorio,
@@ -56,7 +56,7 @@ class IniciarSesion {
 
         
         $sesion = new Sesion(
-            1,
+            0,
             $usuario->getIdUsuario(),
             $token,
             new DateTimeImmutable(),

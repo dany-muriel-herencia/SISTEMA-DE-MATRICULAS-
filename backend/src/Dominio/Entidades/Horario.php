@@ -8,6 +8,8 @@ use InvalidArgumentException;
 class Horario
 {
     private int $idHorario;
+    private int $idSeccion;
+    private int $idAula;
     private string $diaSemana;
     private DateTimeImmutable $horaInicio;
     private DateTimeImmutable $horaFin;
@@ -15,6 +17,8 @@ class Horario
 
     public function __construct(
         int $idHorario,
+        int $idSeccion,
+        int $idAula,
         string $diaSemana,
         DateTimeImmutable $horaInicio,
         DateTimeImmutable $horaFin,
@@ -45,6 +49,8 @@ class Horario
         }
 
         $this->idHorario = $idHorario;
+        $this->idSeccion = $idSeccion;
+        $this->idAula = $idAula;
         $this->diaSemana = $diaSemana;
         $this->horaInicio = $horaInicio;
         $this->horaFin = $horaFin;
@@ -75,4 +81,7 @@ class Horario
     {
         return $this->modalidad;
     }
+    public function getIdSeccion(): int { return $this->idSeccion; }
+    public function getIdAula(): int { return $this->idAula; }
+
 }

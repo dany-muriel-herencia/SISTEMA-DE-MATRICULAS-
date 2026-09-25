@@ -6,3 +6,7 @@ dist/
 build/
 .vscode/
 .idea/
+
+backend/vendor/
+backend/storage/
+!.env.example

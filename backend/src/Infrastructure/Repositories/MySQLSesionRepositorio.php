@@ -9,25 +9,25 @@ use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;
 use PDO;
 
-class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepositorio
+class MySQLSesionRepositorio extends MySQLRepositorioBase implements SesionRepositorio
 {
-    public function buscarPorId(int $idSesion): ?Sesion
+    public function buscarPorId(int $id_sesion): ?Sesion
     {
         $sql = "
             SELECT
-                idSesion,
-                idUsuario,
+                id_sesion,
+                id_usuario,
                 token,
-                fechaInicio,
-                fechaFin,
+                fecha_inicio,
+                fecha_fin,
                 ip,
                 activa
             FROM sesion
-            WHERE idSesion = :idSesion
+            WHERE id_sesion = :id_sesion
         ";
 
         $row = $this->one($sql, [
-            'idSesion' => $idSesion
+            'id_sesion' => $id_sesion
         ]);
 
         if ($row === null) {
@@ -41,11 +41,11 @@ class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepos
     {
         $sql = "
             SELECT
-                idSesion,
-                idUsuario,
+                id_sesion,
+                id_usuario,
                 token,
-                fechaInicio,
-                fechaFin,
+                fecha_inicio,
+                fecha_fin,
                 ip,
                 activa
             FROM sesion
@@ -63,26 +63,26 @@ class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepos
         return $this->mapearSesion($row);
     }
 
-    public function listarPorUsuario(int $idUsuario): array
+    public function listarPorUsuario(int $id_usuario): array
     {
         $sql = "
             SELECT
-                idSesion,
-                idUsuario,
+                id_sesion,
+                id_usuario,
                 token,
-                fechaInicio,
-                fechaFin,
+                fecha_inicio,
+                fecha_fin,
                 ip,
                 activa
             FROM sesion
-            WHERE idUsuario = :idUsuario
-            ORDER BY fechaInicio DESC
+            WHERE id_usuario = :id_usuario
+            ORDER BY fecha_inicio DESC
         ";
 
         $stmt = $this->db->prepare($sql);
 
         $stmt->execute([
-            'idUsuario' => $idUsuario
+            'id_usuario' => $id_usuario
         ]);
 
         $sesiones = [];
@@ -98,20 +98,18 @@ class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepos
     {
         $sql = "
             INSERT INTO sesion (
-                idSesion,
-                idUsuario,
+                id_usuario,
                 token,
-                fechaInicio,
-                fechaFin,
+                fecha_inicio,
+                fecha_fin,
                 ip,
                 activa
             )
             VALUES (
-                :idSesion,
-                :idUsuario,
+                :id_usuario,
                 :token,
-                :fechaInicio,
-                :fechaFin,
+                :fecha_inicio,
+                :fecha_fin,
                 :ip,
                 :activa
             )
@@ -120,14 +118,14 @@ class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepos
         $stmt = $this->db->prepare($sql);
 
         $stmt->execute([
-            'idSesion' => $sesion->getIdSesion(),
-            'idUsuario' => $sesion->getIdUsuario(),
+            'id_usuario' => $sesion->getIdUsuario(),
             'token' => $sesion->getToken(),
-            'fechaInicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
-            'fechaFin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
+            'fecha_inicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
+            'fecha_fin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
             'ip' => $sesion->getIp(),
             'activa' => $sesion->getActiva() ? 1 : 0
         ]);
+        $sesion->setIdSesion($this->generatedId());
     }
 
     public function actualizar(Sesion $sesion): void
@@ -135,51 +133,51 @@ class SesionRepositorioMySQL extends MySQLRepositorioBase implements SesionRepos
         $sql = "
             UPDATE sesion
             SET
-                idUsuario = :idUsuario,
+                id_usuario = :id_usuario,
                 token = :token,
-                fechaInicio = :fechaInicio,
-                fechaFin = :fechaFin,
+                fecha_inicio = :fecha_inicio,
+                fecha_fin = :fecha_fin,
                 ip = :ip,
                 activa = :activa
-            WHERE idSesion = :idSesion
+            WHERE id_sesion = :id_sesion
         ";
 
         $stmt = $this->db->prepare($sql);
 
         $stmt->execute([
-            'idSesion' => $sesion->getIdSesion(),
-            'idUsuario' => $sesion->getIdUsuario(),
+            'id_sesion' => $sesion->getIdSesion(),
+            'id_usuario' => $sesion->getIdUsuario(),
             'token' => $sesion->getToken(),
-            'fechaInicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
-            'fechaFin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
+            'fecha_inicio' => $sesion->getFechaInicio()->format('Y-m-d H:i:s'),
+            'fecha_fin' => $sesion->getFechaFin()?->format('Y-m-d H:i:s'),
             'ip' => $sesion->getIp(),
             'activa' => $sesion->getActiva() ? 1 : 0
         ]);
     }
 
-    public function eliminar(int $idSesion): void
+    public function eliminar(int $id_sesion): void
     {
         $sql = "
             DELETE FROM sesion
-            WHERE idSesion = :idSesion
+            WHERE id_sesion = :id_sesion
         ";
 
         $stmt = $this->db->prepare($sql);
 
         $stmt->execute([
-            'idSesion' => $idSesion
+            'id_sesion' => $id_sesion
         ]);
     }
 
     private function mapearSesion(array $row): Sesion
     {
         return new Sesion(
-            (int) $row['idSesion'],
-            (int) $row['idUsuario'],
+            (int) $row['id_sesion'],
+            (int) $row['id_usuario'],
             $row['token'],
-            new DateTimeImmutable($row['fechaInicio']),
-            $row['fechaFin'] !== null
-                ? new DateTimeImmutable($row['fechaFin'])
+            new DateTimeImmutable($row['fecha_inicio']),
+            $row['fecha_fin'] !== null
+                ? new DateTimeImmutable($row['fecha_fin'])
                 : null,
             $row['ip'],
             (bool) $row['activa']

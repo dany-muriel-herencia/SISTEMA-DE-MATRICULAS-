@@ -21,7 +21,8 @@ class QueueManager
      */
     public function encolar(string $cola, array $payload): string
     {
-        $jobId = uniqid('job_' . $cola . '_', true);
+        if (!preg_match('/^[a-z0-9_]+$/D', $cola)) throw new \InvalidArgumentException('Cola inválida.');
+        $jobId = 'job_' . $cola . '_' . bin2hex(random_bytes(16));
         $jobData = [
             'id' => $jobId,
             'queue' => $cola,
@@ -31,8 +32,9 @@ class QueueManager
             'created_at' => date('Y-m-d H:i:s'),
         ];
 
+        if (!preg_match('/^job_[a-z0-9_]+$/D', $jobId)) throw new \InvalidArgumentException('Trabajo inválido.');
         $filePath = $this->queueDir . '/' . $jobId . '.json';
-        file_put_contents($filePath, json_encode($jobData, JSON_PRETTY_PRINT));
+        if (file_put_contents($filePath, json_encode($jobData, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR), LOCK_EX) === false) throw new \RuntimeException('No se pudo guardar el trabajo.');
 
         return $jobId;
     }
@@ -42,20 +44,28 @@ class QueueManager
      */
     public function obtenerSiguiente(string $cola): ?array
     {
+        if (!preg_match('/^[a-z0-9_]+$/D', $cola)) throw new \InvalidArgumentException('Cola inválida.');
         $files = glob($this->queueDir . '/job_' . $cola . '_*.json');
         if (empty($files)) {
             return null;
         }
 
         // Ordenar por fecha de creación (FIFO)
-        sort($files);
+        usort($files, fn($a,$b)=>filemtime($a)<=>filemtime($b));
 
         foreach ($files as $file) {
-            $content = file_get_contents($file);
-            $data = json_decode($content, true);
-            if ($data && ($data['status'] ?? '') === 'PENDING') {
-                return $data;
-            }
+            $handle=fopen($file,'r+');
+            if(!$handle) continue;
+            try {
+                if(!flock($handle,LOCK_EX)) continue;
+                $data=json_decode(stream_get_contents($handle),true);
+                if($data && ($data['status']??'')==='PENDING') {
+                    $data['status']='PROCESSING'; $data['attempts']++;
+                    rewind($handle); ftruncate($handle,0);
+                    fwrite($handle,json_encode($data,JSON_THROW_ON_ERROR)); fflush($handle);
+                    return $data;
+                }
+            } finally { flock($handle,LOCK_UN); fclose($handle); }
         }
 
         return null;
@@ -74,7 +84,7 @@ class QueueManager
                 $data['error'] = $error;
             }
             $data['processed_at'] = date('Y-m-d H:i:s');
-            file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+            file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR), LOCK_EX);
         }
     }
 }

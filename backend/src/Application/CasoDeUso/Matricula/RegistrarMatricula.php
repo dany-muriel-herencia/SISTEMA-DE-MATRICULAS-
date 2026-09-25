@@ -46,7 +46,7 @@ class RegistrarMatricula
             throw new DomainException("El estudiante con ID {$dto->getEstudianteId()} no existe.");
         }
         if (!$estudiante->estaActivo()) {
-            throw new DomainException("El estudiante no está habilitado para matricularse (Estado: {$estudiante->getEstadoAcademico()}).");
+            throw new DomainException("El estudiante no está habilitado para matricularse.");
         }
 
         // 2. Validar periodo académico
@@ -55,7 +55,7 @@ class RegistrarMatricula
             throw new DomainException("El periodo académico con ID {$dto->getPeriodoId()} no existe.");
         }
         $ahora = new \DateTimeImmutable('now');
-        if ($ahora < $periodo->getFechaMatriculaInicio() || $ahora > $periodo->getFechaMatriculaFin()) {
+        if ($periodo->getEstado() !== 'MATRICULA_ABIERTA' || $ahora < $periodo->getFechaMatriculaInicio() || $ahora >= $periodo->getFechaMatriculaFin()->modify('+1 day')) {
             throw new DomainException("El periodo académico {$periodo->getNombre()} no tiene el proceso de matrícula abierto actualmente.");
         }
 

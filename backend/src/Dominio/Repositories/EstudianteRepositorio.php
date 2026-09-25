@@ -23,4 +23,6 @@ interface EstudianteRepositorio
     public function actualizar(
         Estudiante $estudiante
     ): void;
+    public function listar(int $limit = 50, int $offset = 0): array;
+
 }

@@ -120,6 +120,7 @@ final class MySQLCursoRepositorio
             ':ciclo' => $curso->getCiclo(),
             ':estado' => $curso->getEstado()
         ]);
+        $curso->setIdCurso($this->generatedId());
     }
 
     public function actualizar(Curso $curso): void
@@ -158,8 +159,17 @@ final class MySQLCursoRepositorio
             (int) $fila['creditos'],
             (int) $fila['horas_teoria'],
             (int) $fila['horas_practica'],
-            (int) $fila['ciclo'],
+            (string) $fila['ciclo'],
             (bool) $fila['estado']
         );
     }
+
+    public function listar(int $limit=50,int $offset=0): array {
+        $limit=max(1,min(200,$limit)); $offset=max(0,$offset);
+        return array_map(fn($r)=>$this->map($r),$this->all("SELECT * FROM curso ORDER BY codigo LIMIT $limit OFFSET $offset"));
+    }
+    public function listarOfertaPorPeriodoYCarrera(int $periodo,int $carrera): array {
+        return $this->all('SELECT DISTINCT s.*, c.nombre, c.creditos FROM seccion s JOIN curso c ON c.id_curso=s.id_curso JOIN curriculum cu ON cu.id_curso=c.id_curso JOIN plan_estudio p ON p.id_plan=cu.id_plan WHERE s.id_periodo=:periodo AND p.id_carrera=:carrera AND p.estado=1 AND c.estado=1 ORDER BY c.nombre,s.codigo',['periodo'=>$periodo,'carrera'=>$carrera]);
+    }
+
 }

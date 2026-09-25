@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Presentation\Controllers;
 
 use App\Application\DTO\CrearEstudianteDTO;
-use App\Application\UseCases\Estudiante\CrearEstudiante;
-use App\Application\UseCases\Estudiante\ConsultarEstudiante;
-use App\Application\UseCases\Estudiante\ListarEstudiantes;
+use App\Application\CasoDeUso\Estudiante\CrearEstudiante;
+use App\Application\CasoDeUso\Estudiante\ConsultarEstudiante;
+use App\Application\CasoDeUso\Estudiante\ListarEstudiantes;
 use App\Presentation\Responses\ApiResponse;
 use DomainException;
 use InvalidArgumentException;
@@ -38,7 +38,8 @@ class EstudianteController
             $data = array_map(fn($e) => $e->toArray(), $estudiantes);
             ApiResponse::success($data, "Lista de estudiantes obtenida.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al listar estudiantes: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -50,7 +51,8 @@ class EstudianteController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar estudiante: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -62,7 +64,8 @@ class EstudianteController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar estudiante: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -77,7 +80,8 @@ class EstudianteController
         } catch (InvalidArgumentException | DomainException $e) {
             ApiResponse::unprocessable($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al registrar estudiante: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 }

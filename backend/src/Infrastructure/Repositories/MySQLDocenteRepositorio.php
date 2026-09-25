@@ -15,12 +15,13 @@ final class MySQLDocenteRepositorio
     {
         $sql = "
             SELECT
-                id_usuario,
+                docente.id_usuario,
+                usuario.nombre, usuario.email, usuario.contrasenha, usuario.rol, usuario.estado, usuario.fecha_creacion,
                 codigo,
                 especialidad,
                 grado_academico
-            FROM docente
-            WHERE id_usuario = :id_usuario
+            FROM docente INNER JOIN usuario ON usuario.id_usuario = docente.id_usuario
+            WHERE docente.id_usuario = :id_usuario
             LIMIT 1
         ";
 
@@ -37,11 +38,12 @@ final class MySQLDocenteRepositorio
     {
         $sql = "
             SELECT
-                id_usuario,
+                docente.id_usuario,
+                usuario.nombre, usuario.email, usuario.contrasenha, usuario.rol, usuario.estado, usuario.fecha_creacion,
                 codigo,
                 especialidad,
                 grado_academico
-            FROM docente
+            FROM docente INNER JOIN usuario ON usuario.id_usuario = docente.id_usuario
             WHERE codigo = :codigo
             LIMIT 1
         ";
@@ -103,6 +105,7 @@ final class MySQLDocenteRepositorio
     {
         return new Docente(
             (int) $fila['id_usuario'],
+            $fila['nombre'], $fila['email'], $fila['contrasenha'], $fila['rol'], (bool)$fila['estado'], new \DateTimeImmutable($fila['fecha_creacion']),
             (string) $fila['codigo'],
             (string) $fila['especialidad'],
             (string) $fila['grado_academico']

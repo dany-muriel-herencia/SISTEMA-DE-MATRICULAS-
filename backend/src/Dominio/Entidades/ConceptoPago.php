@@ -8,14 +8,14 @@ class ConceptoPago
 {
     private int $idConcepto;
     private string $nombre;
-    private string $descripcion;
+    private ?string $descripcion;
     private float $monto;
     private bool $obligatorio;
 
     public function __construct(
         int $idConcepto,
         string $nombre,
-        string $descripcion,
+        ?string $descripcion,
         float $monto,
         bool $obligatorio
     ) {
@@ -54,7 +54,7 @@ class ConceptoPago
         return $this->nombre;
     }
 
-    public function getDescripcion(): string
+    public function getDescripcion(): ?string
     {
         return $this->descripcion;
     }

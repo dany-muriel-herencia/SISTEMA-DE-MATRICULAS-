@@ -8,21 +8,23 @@ use InvalidArgumentException;
 class Auditoria
 {
     private int $idAuditoria;
+    private int $idUsuario;
     private string $accion;
     private string $tablaAfectada;
     private DateTimeImmutable $fechaHora;
     private ?string $datosAnteriores;
     private ?string $datosNuevos;
-    private string $ip;
+    private ?string $ip;
 
     public function __construct(
         int $idAuditoria,
+        int $idUsuario,
         string $accion,
         string $tablaAfectada,
         DateTimeImmutable $fechaHora,
         ?string $datosAnteriores,
         ?string $datosNuevos,
-        string $ip
+        ?string $ip
     ) {
         if ($idAuditoria <= 0) {
             throw new InvalidArgumentException(
@@ -42,13 +44,14 @@ class Auditoria
             );
         }
 
-        if (empty(trim($ip))) {
+        if ($ip !== null && empty(trim($ip))) {
             throw new InvalidArgumentException(
                 'La dirección IP es obligatoria'
             );
         }
 
         $this->idAuditoria = $idAuditoria;
+        $this->idUsuario = $idUsuario;
         $this->accion = $accion;
         $this->tablaAfectada = $tablaAfectada;
         $this->fechaHora = $fechaHora;
@@ -87,8 +90,10 @@ class Auditoria
         return $this->datosNuevos;
     }
 
-    public function getIp(): string
+    public function getIp(): ?string
     {
         return $this->ip;
     }
+    public function getIdUsuario(): int { return $this->idUsuario; }
+
 }

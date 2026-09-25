@@ -113,7 +113,7 @@ final class MySQLCarreraRepositorio
                 ':nombre' => $carrera->getNombre(),
                 ':codigo' => $carrera->getCodigo(),
                 ':duracion' => $carrera->getDuracion(),
-                ':estado' => $carrera->isEstado()
+                ':estado' => $carrera->getEstado()
             ]
         );
     }
@@ -139,7 +139,7 @@ final class MySQLCarreraRepositorio
                 ':nombre' => $carrera->getNombre(),
                 ':codigo' => $carrera->getCodigo(),
                 ':duracion' => $carrera->getDuracion(),
-                ':estado' => $carrera->isEstado()
+                ':estado' => $carrera->getEstado()
             ]
         );
     }

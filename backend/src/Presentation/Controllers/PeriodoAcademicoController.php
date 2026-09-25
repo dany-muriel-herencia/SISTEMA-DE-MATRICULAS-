@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCases\PeriodoAcademico\ConsultarPeriodoActivo;
-use App\Application\UseCases\PeriodoAcademico\ListarPeriodos;
+use App\Application\CasoDeUso\PeriodoAcademico\ConsultarPeriodoActivo;
+use App\Application\CasoDeUso\PeriodoAcademico\ListarPeriodos;
 use App\Presentation\Responses\ApiResponse;
 use DomainException;
 use Throwable;
@@ -32,7 +32,8 @@ class PeriodoAcademicoController
             $data = array_map(fn($p) => $p->toArray(), $periodos);
             ApiResponse::success($data, "Lista de periodos académicos obtenida.");
         } catch (Throwable $e) {
-            ApiResponse::error("Error al listar periodos: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 
@@ -44,7 +45,8 @@ class PeriodoAcademicoController
         } catch (DomainException $e) {
             ApiResponse::notFound($e->getMessage());
         } catch (Throwable $e) {
-            ApiResponse::error("Error al consultar periodo activo: " . $e->getMessage(), 500);
+            error_log((string)$e);
+            ApiResponse::error('Error interno del servidor.', 500);
         }
     }
 }

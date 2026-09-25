@@ -86,4 +86,11 @@ class Estudiante extends Usuario
     {
         return $this->promedioAcademico;
     }
+
+    public function toArray(): array {
+        return parent::toArray() + ['codigo_universitario'=>$this->codigoUniversitario,'dni'=>$this->dni,
+            'fecha_nacimiento'=>$this->fechaNacimiento->format('Y-m-d'),'fecha_ingreso'=>$this->fechaIngreso->format('Y-m-d'),
+            'promedio_academico'=>$this->promedioAcademico];
+    }
+
 }

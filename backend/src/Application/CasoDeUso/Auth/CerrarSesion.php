@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Aplicacion\CasosDeUso\Auth;
+namespace App\Application\CasoDeUso\Auth;
 
 use App\Dominio\Repositorios\SesionRepositorio;
 use DateTimeImmutable;

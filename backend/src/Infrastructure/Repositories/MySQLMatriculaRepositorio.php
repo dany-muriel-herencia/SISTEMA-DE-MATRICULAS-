@@ -167,6 +167,32 @@ final class MySQLMatriculaRepositorio
         $this->db->beginTransaction();
 
             try {
+                // Serialize registrations for the same student, including duplicate requests.
+                $lock = $this->db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+                $student = $this->one('SELECT id_usuario FROM estudiante WHERE id_usuario=:id' . $lock, ['id'=>$matricula->getIdEstudiante()]);
+                if (!$student) throw new \DomainException('Estudiante inexistente.');
+                $existing = $this->one("SELECT id_matricula FROM matricula WHERE id_estudiante=:e AND id_periodo=:p AND estado='REGISTRADA'", ['e'=>$matricula->getIdEstudiante(),'p'=>$matricula->getIdPeriodo()]);
+                if ($existing) throw new \DomainException('Ya existe una matrícula activa en este periodo.');
+                usort($detalles, fn($a,$b)=>$a->getIdSeccion()<=>$b->getIdSeccion());
+                $ids = array_map(fn($d)=>$d->getIdSeccion(),$detalles);
+                if (!$ids) throw new \DomainException('Seleccione al menos una sección.');
+                $marks = implode(',', array_fill(0,count($ids),'?'));
+                $sections = $this->all("SELECT * FROM seccion WHERE id_seccion IN ($marks) ORDER BY id_seccion" . $lock, $ids);
+                if (count($sections)!==count($ids)) throw new \DomainException('Sección inexistente o repetida.');
+                $courses=[];
+                foreach ($sections as $s) {
+                    if ((int)$s['id_periodo']!==$matricula->getIdPeriodo() || (int)$s['vacantes_disponibles']<=0) throw new \DomainException('Sección fuera del periodo o sin vacantes.');
+                    if (isset($courses[$s['id_curso']])) throw new \DomainException('Curso repetido.');
+                    $courses[$s['id_curso']]=true;
+                    $missing = $this->one("SELECT pr.id_curso_requerido FROM prerequisito pr WHERE pr.id_curso=:curso AND NOT EXISTS (
+                        SELECT 1 FROM detalle_matricula d JOIN matricula m ON m.id_matricula=d.id_matricula JOIN seccion s ON s.id_seccion=d.id_seccion
+                        WHERE m.id_estudiante=:estudiante AND m.estado<>'ANULADA' AND d.estado='APROBADO' AND s.id_curso=pr.id_curso_requerido)", ['curso'=>$s['id_curso'],'estudiante'=>$matricula->getIdEstudiante()]);
+                    if ($missing) throw new \DomainException('Falta aprobar un prerrequisito.');
+                }
+                $horarios=$this->all("SELECT * FROM horario WHERE id_seccion IN ($marks)",$ids);
+                foreach ($horarios as $i=>$a) foreach (array_slice($horarios,$i+1) as $b) {
+                    if ($a['id_seccion']!==$b['id_seccion'] && $a['dia_semana']===$b['dia_semana'] && $a['hora_inicio']<$b['hora_fin'] && $b['hora_inicio']<$a['hora_fin']) throw new \DomainException('Las secciones presentan cruce de horarios.');
+                }
                 $this->exec(
                     "INSERT INTO matricula (id_estudiante, id_periodo, codigo_matricula, fecha_matricula, estado, total_creditos)
                      VALUES (:id_estudiante, :id_periodo, :codigo_matricula, :fecha_matricula, :estado, :total_creditos)",
@@ -186,7 +212,7 @@ final class MySQLMatriculaRepositorio
                     $detalle->setIdMatricula($matriculaId);
 
                     $cupo = $this->one(
-                        'SELECT vacantes_disponibles FROM seccion WHERE id_seccion = :id_seccion FOR UPDATE',
+                        'SELECT vacantes_disponibles FROM seccion WHERE id_seccion = :id_seccion' . $lock,
                         [':id_seccion' => $detalle->getIdSeccion()]
                     );
                     if (!$cupo || (int) $cupo['vacantes_disponibles'] <= 0) {
@@ -203,6 +229,7 @@ final class MySQLMatriculaRepositorio
                         ]
                     );
 
+                    $detalle->setIdDetalle($this->generatedId());
                     $this->exec(
                         'UPDATE seccion SET vacantes_disponibles = vacantes_disponibles - 1
                          WHERE id_seccion = :id_seccion AND vacantes_disponibles > 0',
@@ -235,6 +262,25 @@ final class MySQLMatriculaRepositorio
             $matricula->setCodigoMatricula(new \App\Dominio\ValueObjects\CodigoMatricula((string) $fila['codigo_matricula']));
         }
 
+        $detalles=$this->all('SELECT * FROM detalle_matricula WHERE id_matricula=:id',['id'=>$matricula->getIdMatricula()]);
+        $matricula->setDetalles(array_map(fn($d)=>new DetalleMatricula((int)$d['id_detalle'],(int)$d['id_matricula'],(int)$d['id_seccion'],$d['estado']),$detalles));
         return $matricula;
     }
+
+    public function anularConDetalles(int $idMatricula): void {
+        $this->db->beginTransaction();
+        try {
+            $lock=$this->db->getAttribute(\PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
+            $m=$this->one('SELECT * FROM matricula WHERE id_matricula=:id'.$lock,['id'=>$idMatricula]);
+            if(!$m || $m['estado']!=='REGISTRADA') throw new \DomainException('La matrícula no existe o no puede anularse.');
+            $detalles=$this->all("SELECT * FROM detalle_matricula WHERE id_matricula=:id AND estado='MATRICULADO' ORDER BY id_seccion",['id'=>$idMatricula]);
+            foreach($detalles as $d) {
+                $this->exec('UPDATE seccion SET vacantes_disponibles=vacantes_disponibles+1 WHERE id_seccion=:id AND vacantes_disponibles<vacantes',['id'=>$d['id_seccion']]);
+            }
+            $this->exec("UPDATE detalle_matricula SET estado='ANULADO' WHERE id_matricula=:id AND estado='MATRICULADO'",['id'=>$idMatricula]);
+            $this->exec("UPDATE matricula SET estado='ANULADA' WHERE id_matricula=:id",['id'=>$idMatricula]);
+            $this->db->commit();
+        } catch (\Throwable $e) { if($this->db->inTransaction())$this->db->rollBack(); throw $e; }
+    }
+
 }

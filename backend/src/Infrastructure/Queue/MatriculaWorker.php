@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Queue;
 
 use App\Application\DTO\RegistrarMatriculaDTO;
-use App\Application\UseCases\Matricula\RegistrarMatricula;
+use App\Application\CasoDeUso\Matricula\RegistrarMatricula;
 use Throwable;
 
 class MatriculaWorker

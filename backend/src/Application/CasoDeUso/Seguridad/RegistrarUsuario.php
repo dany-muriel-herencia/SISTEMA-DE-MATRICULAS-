@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Aplicacion\CasosDeUso\Seguridad;
+namespace App\Application\CasoDeUso\Seguridad;
 
 use App\Dominio\Entidades\Usuario;
 use App\Dominio\Repositorios\UsuarioRepositorio;
@@ -51,7 +51,8 @@ class RegistrarUsuario
             $email,
             $hash,
             $rol,
-            true
+            true,
+            new \DateTimeImmutable()
         );
 
         

@@ -11,14 +11,14 @@ class Curriculum
     private int $idCurriculum;
     private int $idPlan;
     private int $idCurso;
-    private int $ciclo;
+    private string $ciclo;
     private bool $obligatorio;
 
     public function __construct(
         int $idCurriculum,
         int $idPlan,
         int $idCurso,
-        int $ciclo,
+        string $ciclo,
         bool $obligatorio
     ) {
         if ($idCurriculum <= 0) {
@@ -39,9 +39,9 @@ class Curriculum
             );
         }
 
-        if ($ciclo <= 0) {
+        if (trim($ciclo) === '') {
             throw new InvalidArgumentException(
-                'El ciclo debe ser mayor que cero'
+                'El ciclo es obligatorio'
             );
         }
 
@@ -67,7 +67,7 @@ class Curriculum
         return $this->idCurso;
     }
 
-    public function getCiclo(): int
+    public function getCiclo(): string
     {
         return $this->ciclo;
     }

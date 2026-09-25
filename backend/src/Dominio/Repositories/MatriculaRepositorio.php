@@ -23,4 +23,6 @@ interface MatriculaRepositorio
 
     /** @param DetalleMatricula[] $detalles */
     public function registrarConDetalles(Matricula $matricula, array $detalles): int;
+    public function anularConDetalles(int $idMatricula): void;
+
 }

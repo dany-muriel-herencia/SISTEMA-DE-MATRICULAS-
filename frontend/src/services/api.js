@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_BASE_URL = new URL('../backend/public/api', window.location.href).href.replace(/\/$/, '');
 
 export class ApiClient {
   /**
@@ -15,7 +15,7 @@ export class ApiClient {
         status: 0,
         data: {
           success: false,
-          message: 'No se pudo establecer conexión con el servidor API local (http://localhost:3000)',
+          message: 'No se pudo establecer conexión con el servidor API',
           errors: error.message
         }
       };

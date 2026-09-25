@@ -91,7 +91,7 @@ final class MySQLCurriculumRepositorio
                     $curriculum->getCiclo(),
 
                 ':obligatorio' =>
-                    $curriculum->isObligatorio()
+                    $curriculum->esObligatorio()
             ]
         );
     }
@@ -125,7 +125,7 @@ final class MySQLCurriculumRepositorio
                     $curriculum->getCiclo(),
 
                 ':obligatorio' =>
-                    $curriculum->isObligatorio()
+                    $curriculum->esObligatorio()
             ]
         );
     }
@@ -136,7 +136,7 @@ final class MySQLCurriculumRepositorio
             (int) $fila['id_curriculum'],
             (int) $fila['id_plan'],
             (int) $fila['id_curso'],
-            (int) $fila['ciclo'],
+            (string) $fila['ciclo'],
             (bool) $fila['obligatorio']
         );
     }

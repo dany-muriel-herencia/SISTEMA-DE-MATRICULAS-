@@ -11,7 +11,7 @@ class ComprobantePago
     private int $idPago;
     private string $tipo;
     private string $numero;
-    private string $serie;
+    private ?string $serie;
     private DateTimeImmutable $fechaEmision;
 
     public function __construct(
@@ -19,7 +19,7 @@ class ComprobantePago
         int $idPago,
         string $tipo,
         string $numero,
-        string $serie,
+        ?string $serie,
         DateTimeImmutable $fechaEmision
     ) {
         if ($idComprobante <= 0) {
@@ -46,7 +46,7 @@ class ComprobantePago
             );
         }
 
-        if (empty(trim($serie))) {
+        if ($serie !== null && empty(trim($serie))) {
             throw new InvalidArgumentException(
                 'La serie del comprobante es obligatoria'
             );
@@ -80,7 +80,7 @@ class ComprobantePago
         return $this->numero;
     }
 
-    public function getSerie(): string
+    public function getSerie(): ?string
     {
         return $this->serie;
     }
