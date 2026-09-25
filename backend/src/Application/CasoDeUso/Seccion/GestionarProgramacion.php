@@ -8,6 +8,7 @@ use InvalidArgumentException;
 final class GestionarProgramacion
 {
     public function __construct(private ProgramacionRepositorio $repositorio) {}
+    public function catalogos(): array { return $this->repositorio->catalogos(); }
 
     public static function entero(mixed $valor, string $campo): int
     {

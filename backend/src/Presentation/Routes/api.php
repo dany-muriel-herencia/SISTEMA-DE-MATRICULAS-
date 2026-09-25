@@ -96,6 +96,7 @@ return function (Router $router): void {
         )
     );
     $router->get('/api/secciones', [$seccionController, 'listar'], [$authMiddleware]);
+    $router->get('/api/secciones/catalogos', [$seccionController, 'catalogos'], [$authMiddleware]);
     $router->get('/api/secciones/{id}', [$seccionController, 'consultar'], [$authMiddleware]);
     $router->post('/api/secciones', [$seccionController, 'registrar'], $staff);
     $router->post('/api/secciones/{id}/horarios', [$seccionController, 'registrarHorario'], $staff);
@@ -121,6 +122,7 @@ return function (Router $router): void {
     $router->post('/api/auth/login', [$authController, 'login']);
 
     $router->post('/api/auth/logout', [$authController, 'logout'], [$authMiddleware]);
+    $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
 
     // Matrículas
     $router->post('/api/matriculas', [$matriculaController, 'registrar'], [$authMiddleware, new MatriculaAccessMiddleware($matriculaRepo, 'crear')]);

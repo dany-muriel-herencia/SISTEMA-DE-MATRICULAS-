@@ -1,6 +1,6 @@
 # Sistema de Matrículas UNJBG
 
-Backend PHP 8.2+ con PDO y MySQL/MariaDB. Frontend HTML, CSS y JavaScript para consultar el estado de la API. No requiere Node.js para ejecutarse.
+Backend PHP 8.2+ con PDO y MySQL/MariaDB. Frontend HTML, CSS y JavaScript con inicio de sesión y gestión de secciones y horarios. No requiere Node.js para ejecutarse.
 
 ## Instalación local
 
@@ -40,11 +40,23 @@ El módulo de programación está disponible en la API. Consulta para usuarios a
 - `POST /api/secciones`: JSON `{"id_curso":1,"id_periodo":1,"id_docente":2,"codigo":"A","vacantes":30}`. Las vacantes disponibles se inicializan en el servidor.
 - `POST /api/secciones/1/horarios`: JSON `{"id_aula":1,"dia_semana":"LUNES","hora_inicio":"08:00","hora_fin":"10:00","modalidad":"PRESENCIAL"}`.
 
-Se valida código único por periodo, curso y docente activos, aula disponible y capacidad. Los cruces de aula, docente y sección se rechazan dentro del mismo periodo; se permiten horarios contiguos. Días y modalidades aceptados están en OpenAPI. El esquema requiere aula también para modalidad VIRTUAL. No se agregan horarios a secciones con detalles de matrícula no anulados para preservar los horarios ya validados al inscribirse. No incluye edición, eliminación ni interfaz de gestión en esta entrega.
+Se valida código único por periodo, curso y docente activos, aula disponible y capacidad. Los cruces de aula, docente y sección se rechazan dentro del mismo periodo; se permiten horarios contiguos. Días y modalidades aceptados están en OpenAPI. El esquema requiere aula también para modalidad VIRTUAL. No se agregan horarios a secciones con detalles de matrícula no anulados para preservar los horarios ya validados al inscribirse. No incluye edición ni eliminación.
+
+En `frontend/index.html`, iniciar sesión con una cuenta existente. La pantalla permite filtrar secciones por periodo y curso y consultar sus horarios. ADMIN y COORDINADOR pueden crear secciones y agregar horarios con selectores de docente y aula. Los errores se muestran en el formulario conservando sus datos. El token se guarda en sessionStorage de la pestaña; al recargar se valida con `GET /api/auth/me`. Cerrar sesión revoca el token. Los permisos de escritura se verifican también en el servidor.
+
+`GET /api/secciones/catalogos` ofrece docentes activos (identificador, código y nombre) y aulas disponibles (identificador, nombre y capacidad) a usuarios autenticados. Los catálogos académicos deben existir previamente.
 
 Los registros se realizan en transacciones y bloquean filas en MySQL para coordinar comprobaciones concurrentes. No requiere migraciones. Los bloqueos deben verificarse en MySQL/MariaDB de pruebas antes de desplegar.
 
 ## Pruebas
+
+Para probar la interfaz sin tocar MySQL, desde la raíz en Git Bash:
+
+```bash
+SGAU_TEST_DB="$(cygpath -m "$(mktemp)")" /c/xampp/php/php.exe -S 127.0.0.1:8099 -t . backend/tests/ui_router.php
+```
+
+Abrir `http://127.0.0.1:8099/frontend/index.html`. El servidor de pruebas crea una base SQLite separada y cuentas ficticias `admin@example.test` y `docente@example.test`, ambas con contraseña `Prueba-local-2026`. Estas cuentas solo existen en esa base temporal. En otra terminal: `SGAU_TEST_URL=http://127.0.0.1:8099 node backend/tests/ui_http_test.mjs` verifica autenticación, catálogos, permisos y revocación por HTTP. Detener el servidor con Ctrl+C al terminar. Nunca publicar este servidor de pruebas.
 
 Desde backend: php tests/run_tests.php. Usa SQLite en memoria, carga las clases y rutas y prueba repositorios, sesiones, matrícula y rollback. No modifica MySQL. El bloqueo FOR UPDATE y las migraciones deben verificarse también en una base MySQL/MariaDB de pruebas antes de desplegar.
 

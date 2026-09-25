@@ -20,4 +20,7 @@ final class AuthController {
         $this->cerrar->ejecutar($token);
         ApiResponse::success(null,'Sesión cerrada.');
     }
+    public function me(): void {
+        ApiResponse::success(\App\Presentation\Middleware\AuthMiddleware::$usuario->toArray());
+    }
 }

@@ -2,88 +2,64 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Matrícula UNJBG</title>
-  <meta name="description" content="Plataforma académica y sistema de matrícula de la Universidad Nacional Jorge Basadre Grohmann">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secciones y horarios · UNJBG</title>
   <link rel="stylesheet" href="./src/styles/main.css">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Barra de Navegación Superior -->
-    <header class="navbar" id="main-header">
-      <div class="nav-brand">
-        <div class="brand-logo">UNJBG</div>
-        <div class="brand-info">
-          <span class="brand-title">Sistema de Matrícula</span>
-          <span class="brand-subtitle">Universidad Nacional Jorge Basadre Grohmann</span>
-        </div>
+  <header class="navbar">
+    <div class="brand"><strong class="logo">UNJBG</strong><div><strong>Sistema de Matrícula</strong><small>Universidad Nacional Jorge Basadre Grohmann</small></div></div>
+    <div id="session" hidden><span id="identity"></span><button id="logout" class="secondary">Cerrar sesión</button></div>
+  </header>
+  <main>
+    <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+    <section id="login-panel" class="login panel">
+      <span class="eyebrow">PORTAL ACADÉMICO</span>
+      <h1>Bienvenido</h1><p>Ingresa con tu cuenta institucional para consultar la programación académica.</p>
+      <form id="login-form">
+        <label>Correo electrónico<input name="email" type="email" autocomplete="username" required></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Iniciar sesión</button>
+      </form>
+    </section>
+    <section id="workspace" hidden>
+      <div class="heading"><div><span class="eyebrow">PROGRAMACIÓN ACADÉMICA</span><h1>Secciones y horarios</h1><p>Consulta la oferta y organiza los horarios de cada sección.</p></div><button id="new-section" data-staff hidden>Nueva sección</button></div>
+      <p id="read-only" class="muted" hidden>Tu cuenta permite consultar las secciones y sus horarios.</p>
+      <form id="filters" class="filters panel">
+        <label>Periodo académico<select id="period-filter" required><option value="">Selecciona un periodo</option></select></label>
+        <label>Curso<select id="course-filter"><option value="">Todos los cursos</option></select></label>
+        <button type="submit" class="secondary">Actualizar</button>
+      </form>
+      <div class="columns">
+        <section class="panel"><div class="panel-heading"><h2>Secciones</h2><span id="count" class="badge">0</span></div><p id="list-state" class="muted">Selecciona un periodo para consultar.</p>
+          <div class="table-scroll"><table><caption class="sr-only">Secciones del periodo seleccionado</caption><thead><tr><th>Sección / curso</th><th>Vacantes</th><th>Acción</th></tr></thead><tbody id="sections"></tbody></table></div>
+        </section>
+        <section class="panel" id="detail-panel" aria-busy="false"><h2 id="detail-title" tabindex="-1">Horarios de la sección</h2><p id="detail-info" class="muted">Selecciona una sección para ver sus horarios.</p><div id="schedules"></div><button id="new-schedule" data-staff hidden>Agregar horario</button></section>
       </div>
-      <div class="nav-status-badge" id="system-status-indicator">
-        <span class="status-dot"></span>
-        <span class="status-text" id="status-label">Verificando API...</span>
-      </div>
-    </header>
-
-    <!-- Contenedor Principal -->
-    <main class="main-container">
-      <section class="hero-card">
-        <div class="hero-badge">Base Técnica & Arquitectura Inicial</div>
-        <h1 class="hero-title">Sistema de Matrícula <span class="gradient-text">UNJBG</span></h1>
-        <p class="hero-description">
-          Arquitectura en capas desacopladas, modular y con acceso a datos mediante <strong>SQL explícito (sin ORM)</strong>.
-        </p>
-
-        <!-- Tarjetas de Diagnóstico y Estado -->
-        <div class="grid-cards">
-          <!-- Tarjeta API Backend -->
-          <div class="glass-card" id="card-backend">
-            <div class="card-icon">⚡</div>
-            <h2 class="card-title">Backend REST API</h2>
-            <p class="card-description">PHP 8.2+ con arquitectura por capas y manejo centralizado de errores.</p>
-            <div class="card-metric" id="backend-metric">API /api</div>
-          </div>
-
-          <!-- Tarjeta Base de Datos -->
-          <div class="glass-card" id="card-database">
-            <div class="card-icon">🗄️</div>
-            <h2 class="card-title">Persistencia Local</h2>
-            <p class="card-description">MySQL / MariaDB con PDO, consultas parametrizadas y transacciones.</p>
-            <div class="card-metric" id="db-metric">Consultando...</div>
-          </div>
-
-          <!-- Tarjeta Módulos -->
-          <div class="glass-card" id="card-modules">
-            <div class="card-icon">🧩</div>
-            <h2 class="card-title">Módulos del Sistema</h2>
-            <p class="card-description">Usuarios, Estudiantes, Cursos, Periodos, Secciones y Matrícula.</p>
-            <div class="card-metric">7 Módulos Listos</div>
-          </div>
-        </div>
-
-        <!-- Consola de Diagnóstico en Tiempo Real -->
-        <div class="terminal-box">
-          <div class="terminal-header">
-            <div class="terminal-dots">
-              <span class="dot red"></span>
-              <span class="dot yellow"></span>
-              <span class="dot green"></span>
-            </div>
-            <span class="terminal-title">Diagnóstico de Salud (/api/v1/health)</span>
-          </div>
-          <pre class="terminal-body" id="health-output">Conectando con el backend local en http://localhost:3000/api/v1/health ...</pre>
-        </div>
-      </section>
-    </main>
-
-    <!-- Pie de Página -->
-    <footer class="main-footer">
-      <p>© 2026 Universidad Nacional Jorge Basadre Grohmann - Tacna, Perú. Arquitectura de Software.</p>
-    </footer>
-  </div>
-
+    </section>
+  </main>
+  <footer>UNJBG · Tacna, Perú</footer>
+  <dialog id="section-dialog" aria-labelledby="section-title">
+    <form id="section-form"><div class="panel-heading"><h2 id="section-title">Nueva sección</h2><button type="button" class="secondary" data-close>Cerrar</button></div>
+      <p class="form-error" role="alert" hidden></p>
+      <label>Periodo<select name="id_periodo" required></select></label>
+      <label>Curso<select name="id_curso" required></select></label>
+      <label>Docente<select name="id_docente" required></select></label>
+      <div class="form-grid"><label>Código de sección<input name="codigo" maxlength="30" required placeholder="Ej. A"></label><label>Vacantes<input name="vacantes" type="number" min="1" max="2147483647" step="1" required></label></div>
+      <button type="submit">Crear sección</button>
+    </form>
+  </dialog>
+  <dialog id="schedule-dialog" aria-labelledby="schedule-title">
+    <form id="schedule-form"><div class="panel-heading"><h2 id="schedule-title">Agregar horario</h2><button type="button" class="secondary" data-close>Cerrar</button></div>
+      <p id="schedule-context" class="muted"></p><p class="form-error" role="alert" hidden></p>
+      <label>Aula<select name="id_aula" required></select></label>
+      <label>Día<select name="dia_semana" required><option value="LUNES">Lunes</option><option value="MARTES">Martes</option><option value="MIERCOLES">Miércoles</option><option value="JUEVES">Jueves</option><option value="VIERNES">Viernes</option><option value="SABADO">Sábado</option><option value="DOMINGO">Domingo</option></select></label>
+      <div class="form-grid"><label>Hora de inicio<input name="hora_inicio" type="time" required></label><label>Hora de fin<input name="hora_fin" type="time" required></label></div>
+      <label>Modalidad<select name="modalidad"><option value="PRESENCIAL">Presencial</option><option value="VIRTUAL">Virtual</option><option value="HIBRIDA">Híbrida</option></select></label>
+      <small>Se requiere un aula para todas las modalidades. Registra los horarios antes de matricular estudiantes.</small>
+      <button type="submit">Guardar horario</button>
+    </form>
+  </dialog>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -35,6 +35,7 @@ final class SeccionController
     }
 
     public function listar(): void { $this->responder(fn() => $this->programacion->listar($_GET)); }
+    public function catalogos(): void { $this->responder(fn() => $this->programacion->catalogos()); }
     public function consultar(string $id): void { $this->responder(fn() => $this->programacion->consultar($id)); }
     public function registrar(): void { $this->responder(fn() => $this->programacion->crearSeccion($this->entrada()), true); }
     public function registrarHorario(string $id): void { $this->responder(fn() => $this->programacion->crearHorario($id, $this->entrada()), true); }

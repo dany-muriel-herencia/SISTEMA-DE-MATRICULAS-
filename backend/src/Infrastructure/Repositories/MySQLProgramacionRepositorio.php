@@ -8,6 +8,13 @@ use Throwable;
 
 final class MySQLProgramacionRepositorio extends MySQLRepositorioBase implements ProgramacionRepositorio
 {
+    public function catalogos(): array
+    {
+        return [
+            'docentes' => $this->all('SELECT d.id_usuario AS id_docente, d.codigo, u.nombre FROM docente d JOIN usuario u ON u.id_usuario = d.id_usuario WHERE u.estado = 1 ORDER BY u.nombre'),
+            'aulas' => $this->all('SELECT id_aula, nombre, capacidad FROM aula WHERE estado = 1 AND disponible = 1 ORDER BY nombre'),
+        ];
+    }
     public function listar(int $periodoId, ?int $cursoId): array
     {
         $sql = 'SELECT * FROM seccion WHERE id_periodo = ?';
