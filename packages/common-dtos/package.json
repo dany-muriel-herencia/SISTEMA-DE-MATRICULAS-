@@ -1,0 +1,14 @@
+{
+  "name": "@sgau/common-dtos",
+  "version": "1.0.0",
+  "description": "Dominio tipado y DTOs de intercambio para microservicios SGAU - UNJBG",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
+
