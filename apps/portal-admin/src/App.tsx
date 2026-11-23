@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  GraduationCap, 
-  Layers, 
-  Clock, 
-  Building2, 
-  CreditCard, 
-  BarChart3, 
+import { View as CentroMatricula } from './views/centro-matricula';
+import {
+  GraduationCap,
+  Layers,
+  Clock,
+  Building2,
+  CreditCard,
+  BarChart3,
   FileEdit,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 
-export const App: React.FC = () => {
+const App: React.FC = () => {
   const [moduloActivo, setModuloActivo] = useState('seguridad');
 
   const menuItems = [
@@ -25,34 +25,60 @@ export const App: React.FC = () => {
     { id: 'rectificaciones', label: '8. Panel de Rectificaciones (M10)', icon: <FileEdit size={18} /> },
   ];
 
+  const moduloSeleccionado = menuItems.find(
+    (modulo) => modulo.id === moduloActivo,
+  );
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif' }}>
-      {/* Sidebar Administrativo */}
-      <aside style={{ width: '280px', backgroundColor: '#001E36', color: 'white', padding: '24px 16px' }}>
-        <div style={{ paddingBottom: '16px', borderBottom: '1px solid #1a3a5c', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 'bold' }}>SGAU UNJBG</h2>
-          <span style={{ fontSize: '12px', color: '#90cdf4' }}>Backoffice Administrativo ESIS</span>
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100vh',
+        fontFamily: 'Segoe UI, sans-serif',
+      }}
+    >
+      <aside
+        style={{
+          width: 280,
+          backgroundColor: '#001E36',
+          color: 'white',
+          padding: '24px 16px',
+        }}
+      >
+        <div
+          style={{
+            paddingBottom: 16,
+            borderBottom: '1px solid #1a3a5c',
+            marginBottom: 20,
+          }}
+        >
+          <h2 style={{ fontSize: 18, margin: 0 }}>SGAU UNJBG</h2>
+          <span style={{ fontSize: 12, color: '#90cdf4' }}>
+            Backoffice Administrativo ESIS
+          </span>
         </div>
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {menuItems.map(item => (
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {menuItems.map((item) => (
             <button
               key={item.id}
+              type="button"
               onClick={() => setModuloActivo(item.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: 12,
                 width: '100%',
                 padding: '10px 14px',
                 textAlign: 'left',
-                border: 'none',
-                borderRadius: '6px',
+                border: 0,
+                borderRadius: 6,
                 cursor: 'pointer',
-                fontSize: '13px',
-                backgroundColor: moduloActivo === item.id ? '#005A9C' : 'transparent',
+                fontSize: 13,
+                backgroundColor:
+                  moduloActivo === item.id ? '#005A9C' : 'transparent',
                 color: moduloActivo === item.id ? 'white' : '#cbd5e1',
-                fontWeight: moduloActivo === item.id ? 600 : 400
+                fontWeight: moduloActivo === item.id ? 600 : 400,
               }}
             >
               {item.icon}
@@ -62,22 +88,49 @@ export const App: React.FC = () => {
         </nav>
       </aside>
 
-      {/* Área de Trabajo Principal */}
-      <main style={{ flex: 1, padding: '32px', backgroundColor: '#f8fafc' }}>
-        <header style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '22px', margin: 0, color: '#0f172a' }}>
-            Centro de Control: {menuItems.find(m => m.id === moduloActivo)?.label}
+      <main
+        style={{
+          flex: 1,
+          padding: 32,
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <header
+          style={{
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: 16,
+            marginBottom: 24,
+          }}
+        >
+          <h1 style={{ fontSize: 22, margin: 0, color: '#0f172a' }}>
+            Centro de Control: {moduloSeleccionado?.label}
           </h1>
-          <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>
             Servicio conectado al API Gateway en puerto 8000
           </p>
         </header>
 
-        <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '24px', border: '1px solid #e2e8f0' }}>
-          <h3 style={{ marginTop: 0, color: '#1e293b' }}>Panel Operativo Activo</h3>
-          <p style={{ color: '#475569', fontSize: '14px' }}>
-            Módulo cargado exitosamente. Listo para vincular peticiones hacia los endpoints correspondientes de los microservicios.
-          </p>
+        <div
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 10,
+            padding: 24,
+            border: '1px solid #e2e8f0',
+          }}
+        >
+          {moduloActivo === 'centro-matricula' ? (
+            <CentroMatricula />
+          ) : (
+            <>
+              <h3 style={{ marginTop: 0, color: '#1e293b' }}>
+                Panel Operativo Activo
+              </h3>
+              <p style={{ color: '#475569', fontSize: 14 }}>
+                Selecciona “Cola en Vivo y Matrícula” en el menú para abrir el
+                módulo de matrícula.
+              </p>
+            </>
+          )}
         </div>
       </main>
     </div>
