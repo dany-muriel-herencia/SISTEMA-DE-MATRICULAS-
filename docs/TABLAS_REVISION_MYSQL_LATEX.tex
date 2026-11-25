@@ -1,0 +1,146 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\definecolor{headerblue}{RGB}{28, 64, 114}
+\definecolor{rowgray}{RGB}{245, 247, 250}
+\definecolor{leadcolor}{RGB}{180, 40, 40}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\title{\textbf{Matriz de Distribución de Revisiones Técnicas de Métodos y Procedimientos Almacenados MySQL 8.0}\\
+\large Sistema Integrado de Matrícula Universitaria (SGAU -- UNJBG)}
+\author{\textbf{Equipo:} Dany Ronaldo Muriel Herencia, Franklin Cristofier Anahua Cahuachia, Jhosep Rodrigo Arocutipa Mamani\\
+\small Universidad Nacional Jorge Basadre Grohmann --- Facultad de Ingeniería (ESIS)}
+\date{Noviembre 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Resumen de Roles de Revisión}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l p{3.2cm} X}
+\toprule
+\textbf{Integrante} & \textbf{Rol Principal} & \textbf{Alcance en la Revisión} \\
+\midrule
+\textbf{Dany Muriel Herencia} & Tech Lead / QA Lead & \textbf{Único Revisor y Aprobador Final de PRs (Gatekeeper)}. Valida regla 0\% ORM, integridad ACID y bloqueos pesimistas. \\
+\textbf{Franklin Anahua Cahuachia} & Backend Engineer & Revisión técnica de lógica SQL, SPs, parámetros \texttt{IN/OUT}, manejo de excepciones y concurrencia. \\
+\textbf{Jhosep Arocutipa Mamani} & Frontend Developer & Revisión técnica de interfaces de datos (JSON), integración con vistas React y presentación en UI/Reportes. \\
+\bottomrule
+\end{tabularx}
+\caption{Roles generales de revisión del proyecto.}
+\label{tab:roles-revision}
+\end{table}
+
+\vspace{0.5cm}
+
+\section{Tabla 1: Funciones Determinísticas y de Negocio (MySQL Functions)}
+
+\begin{longtable}{p{4.2cm} p{3.8cm} p{2.2cm} p{2.5cm} p{2.2cm}}
+\toprule
+\textbf{Función MySQL} & \textbf{Propósito / Regla} & \textbf{Desarrollador} & \textbf{Peer Review} & \textbf{Aprobador Final} \\
+\midrule
+\endhead
+\texttt{fn\_detectar\_cruce\_horario} & Detecta solapamiento de días y horas entre secciones elegidas. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{fn\_validar\_prerrequisitos} & Valida aprobación de prerrequisitos exigidos en malla. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\texttt{fn\_vacantes\_disponibles} & Calcula cupos libres (\texttt{capacidad - ocupados}). & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{fn\_calcular\_creditos\_matricula} & Suma créditos de cursos en matrícula activa. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\texttt{fn\_validar\_limite\_creditos} & Evalúa si respeta el tope ordinario (22) o mérito (26). & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\rowcolor{rowgray}
+\texttt{fn\_validar\_curso\_en\_plan} & Comprueba que el curso pertenezca al plan de estudios. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\texttt{fn\_calcular\_saldo\_deuda} & Suma montos impagos de conceptos TUPA y multas. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{fn\_creditos\_adicionales} & Determina si califica a créditos extra por PPA $>$ 14.00. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\texttt{fn\_nota\_minima} & Constante determinística institucional (10.50). & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{fn\_limite\_creditos\_base} & Constante determinística institucional (22). & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{fn\_promedio\_merito} & Constante determinística institucional (14.00). & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\bottomrule
+\end{longtable}
+
+\newpage
+
+\section{Tabla 2: Procedimientos Transaccionales de Matrícula (ACID)}
+
+\begin{longtable}{p{4.5cm} p{3.7cm} p{2.2cm} p{2.4cm} p{2.2cm}}
+\toprule
+\textbf{Procedimiento Almacenado} & \textbf{Propósito / Transacción} & \textbf{Desarrollador} & \textbf{Peer Review} & \textbf{Aprobador Final} \\
+\midrule
+\endhead
+\texttt{sp\_registrar\_matricula\_completa} & \textbf{Transacción Maestra:} Valida deudas, créditos, vacantes y confirma. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\rowcolor{rowgray}
+\texttt{sp\_crear\_matricula\_pendiente} & Crea registro \texttt{PENDIENTE} para reservar turno temporal. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{sp\_confirmar\_matricula} & Pasa matrícula a \texttt{REGISTRADA} y descuenta vacantes. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\rowcolor{rowgray}
+\texttt{sp\_inscribir\_curso\_matricula} & Asigna sección validando cruce de horario y cupos. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\texttt{sp\_retirar\_curso} & Da de baja asignatura y libera vacante atómicamente. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_anular\_matricula} & Anulación total de matrícula y liberación de secciones. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\texttt{sp\_aplicar\_excepcion} & Bypass administrativo para autorizar matrícula por decanato. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\bottomrule
+\end{longtable}
+
+\vspace{0.5cm}
+
+\section{Tabla 3: Procedimientos de Cola en Vivo y Lista de Espera}
+
+\begin{longtable}{p{4.5cm} p{3.7cm} p{2.2cm} p{2.4cm} p{2.2cm}}
+\toprule
+\textbf{Procedimiento Almacenado} & \textbf{Propósito / Flujo} & \textbf{Desarrollador} & \textbf{Peer Review} & \textbf{Aprobador Final} \\
+\midrule
+\endhead
+\texttt{sp\_ingresar\_cola\_matricula} & Asigna turno FIFO ponderado por orden de mérito. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_atender\_siguiente\_cola} & Cambia a \texttt{ATENDIENDO} con temporizador de 15 min. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\texttt{sp\_finalizar\_turno\_cola} & Cierra turno en cola al culminar matrícula exitosa. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_abandonar\_cola} & Libera turno si el alumno cancela voluntariamente. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{sp\_expirar\_turnos\_cola} & Proceso batch que marca \texttt{EXPIRADO} por tiempo límite. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_espera\_inscribir} & Agrega al alumno a lista de espera de sección llena. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{sp\_espera\_promover} & Promueve automáticamente al primer alumno al haber vacante. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_espera\_cancelar} & Retiro voluntario de la lista de espera. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\bottomrule
+\end{longtable}
+
+\vspace{0.5cm}
+
+\section{Tabla 4: Procedimientos de Rectificación, Finanzas y Cierre}
+
+\begin{longtable}{p{4.5cm} p{3.7cm} p{2.2cm} p{2.4cm} p{2.2cm}}
+\toprule
+\textbf{Procedimiento Almacenado} & \textbf{Propósito / Dominio} & \textbf{Desarrollador} & \textbf{Peer Review} & \textbf{Aprobador Final} \\
+\midrule
+\endhead
+\texttt{sp\_solicitar\_rectificacion} & Registra solicitud de alta/baja/cambio dentro de plazo. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_aprobar\_rectificacion} & Aplica modificaciones y emite acta de rectificación. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\texttt{sp\_rechazar\_rectificacion} & Desestima solicitud registrando causal administrativa. & Franklin Anahua & Dany Muriel & \textbf{Dany Muriel} \\
+\rowcolor{rowgray}
+\texttt{sp\_registrar\_pago} & Registra pago en ventanilla y descuenta deuda en caja. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{sp\_cerrar\_semestre\_academico} & Consolida notas, recalcula PPA y sella actas con hash. & Dany Muriel & Franklin Anahua & \textbf{Dany Muriel (Lead)} \\
+\rowcolor{rowgray}
+\texttt{sp\_consultar\_matricula} & Consulta resumen de cursos inscritos y créditos (JSON). & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\texttt{sp\_consultar\_vacantes} & Lista secciones y cupos libres para matriz interactiva. & Franklin Anahua & Jhosep Arocutipa & \textbf{Dany Muriel} \\
+\bottomrule
+\end{longtable}
+
+\end{document}
