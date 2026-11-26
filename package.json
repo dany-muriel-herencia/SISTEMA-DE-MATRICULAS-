@@ -1,31 +1,15 @@
 {
   "name": "sgau-unjbg-system",
   "version": "1.0.0",
-  "description": "Sistema Integrado de Gestión Académica y Matrícula Universitaria (UNJBG - FAIN - ESIS) Monorepo",
+  "description": "Sistema Integrado de Gestión Académica y Matrícula Universitaria (UNJBG - FAIN - ESIS) - Backend PHP PDO Único + Frontend React",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "gateway",
-    "services/*",
-    "packages/*"
+    "apps/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
     "dev:portal-estudiante": "npm run dev --workspace=apps/portal-estudiante",
     "dev:portal-admin": "npm run dev --workspace=apps/portal-admin",
-    "dev:gateway": "npm run dev --workspace=gateway",
-    "dev:auth": "npm run dev --workspace=services/auth-service",
-    "dev:academic": "npm run dev --workspace=services/academic-service",
-    "dev:student": "npm run dev --workspace=services/student-service",
-    "dev:schedule": "npm run dev --workspace=services/schedule-service",
-    "dev:enrollment": "npm run dev --workspace=services/enrollment-service",
-    "dev:finance": "npm run dev --workspace=services/finance-service",
-    "dev:reporting": "npm run dev --workspace=services/reporting-service",
-    "dev:rectification": "npm run dev --workspace=services/rectification-service"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5"
+    "serve:php-api": "php -S localhost:8000 -t backend/public"
   }
 }

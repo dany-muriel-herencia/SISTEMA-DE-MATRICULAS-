@@ -1,5 +1,6 @@
 version: '3.8'
 
+# Opcional si no se usa XAMPP local: solo 2 contenedores (MySQL 8.0 + Apache/PHP 8.2)
 services:
   mysql:
     image: mysql:8.0
@@ -7,213 +8,31 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: sgau_db
-      MYSQL_USER: sgau_user
-      MYSQL_PASSWORD: sgau_password
+      MYSQL_DATABASE: bd_matricula_universitaria
     ports:
       - "3306:3306"
     volumes:
+      - ./database/releases/bd_matricula_universitaria_v4.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
       - mysql_data:/var/lib/mysql
-    networks:
-      - sgau-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: sgau-redis
+  php-api:
+    image: php:8.2-apache
+    container_name: sgau-php-api
     restart: always
     ports:
-      - "6379:6379"
+      - "8000:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: rootpassword
+      DB_NAME: bd_matricula_universitaria
+      JWT_SECRET: super_secret_jwt_key_unjbg_2026
     volumes:
-      - redis_data:/data
-    networks:
-      - sgau-network
-
-  gateway:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.gateway
-    container_name: sgau-gateway
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      PORT: 8000
-      JWT_SECRET: super_secret_jwt_key_unjbg_2026
-      AUTH_SERVICE_URL: http://auth-service:3001
-      STUDENT_SERVICE_URL: http://student-service:3002
-      ACADEMIC_SERVICE_URL: http://academic-service:3003
-      SCHEDULE_SERVICE_URL: http://schedule-service:3004
-      ENROLLMENT_SERVICE_URL: http://enrollment-service:3005
-      FINANCE_SERVICE_URL: http://finance-service:3006
-      REPORTING_SERVICE_URL: http://reporting-service:3007
-      RECTIFICATION_SERVICE_URL: http://rectification-service:3008
+      - ./backend/public:/var/www/html
+      - ./backend:/var/www/backend
     depends_on:
       - mysql
-      - redis
-    networks:
-      - sgau-network
-
-  auth-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: auth-service
-    container_name: sgau-auth-service
-    environment:
-      PORT: 3001
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_auth
-      JWT_SECRET: super_secret_jwt_key_unjbg_2026
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  student-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: student-service
-    container_name: sgau-student-service
-    environment:
-      PORT: 3002
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_student
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  academic-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: academic-service
-    container_name: sgau-academic-service
-    environment:
-      PORT: 3003
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_academic
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  schedule-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: schedule-service
-    container_name: sgau-schedule-service
-    environment:
-      PORT: 3004
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_schedule
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  enrollment-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: enrollment-service
-    container_name: sgau-enrollment-service
-    environment:
-      PORT: 3005
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_enrollment
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    depends_on:
-      - mysql
-      - redis
-    networks:
-      - sgau-network
-
-  finance-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: finance-service
-    container_name: sgau-finance-service
-    environment:
-      PORT: 3006
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_finance
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  reporting-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: reporting-service
-    container_name: sgau-reporting-service
-    environment:
-      PORT: 3007
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_db
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-  rectification-service:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile.service
-      args:
-        SERVICE_NAME: rectification-service
-    container_name: sgau-rectification-service
-    environment:
-      PORT: 3008
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: sgau_user
-      DB_PASS: sgau_password
-      DB_NAME: sgau_enrollment
-    depends_on:
-      - mysql
-    networks:
-      - sgau-network
-
-networks:
-  sgau-network:
-    driver: bridge
 
 volumes:
   mysql_data:
-  redis_data:
-

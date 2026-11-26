@@ -35,10 +35,10 @@
 3. **Archivo de Configuración `.github/CODEOWNERS`:**
    ```plaintext
    # Único responsable y aprobador de todo el repositorio:
-   *       @dany-muriel-herencia
-   /database/   @dany-muriel-herencia
-   /apps/       @dany-muriel-herencia
-   /packages/   @dany-muriel-herencia
+   *           @dany-muriel-herencia
+   /backend/   @dany-muriel-herencia
+   /database/  @dany-muriel-herencia
+   /apps/      @dany-muriel-herencia
    ```
 
 ---
@@ -85,7 +85,7 @@
 | 1. BACKLOG (Por Iniciar) | 2. TO DO (Sprint Activo) | 3. IN PROGRESS (En Desarrollo) | 4. IN REVIEW (Revisión PR por DANY) | 5. DONE (Terminado y Aprobado) |
 |---|---|---|---|---|
 | **ISSUE-11: Rectificaciones (M10)**<br>• Asignado: Franklin<br>• CU-64 a CU-73<br>• Estimación: 8 pts | **ISSUE-07: Centro Control Matrícula Admin (M06)**<br>• Asignado: Franklin<br>• Monitoreo cola en vivo y excepciones<br>• Estimación: 8 pts | **ISSUE-01: Autenticación & JWT (M01)**<br>• Asignado: Franklin<br>• Login nativo PDO + BCrypt<br>• Estimación: 5 pts | **ISSUE-04: Gestión Curricular y Malla (M04)**<br>• Asignado: Dany<br>• Vistas y SP de prerrequisitos<br>• *Revisor: Dany Muriel* | **BD-01: Script de Base de Datos v4.0**<br>• DDL + 10 Tablas principales<br>• SPs transaccionales sin triggers<br>• Cero dependencias ORM |
-| **ISSUE-14: Pruebas de Carga Concurrente**<br>• Asignado: Dany<br>• Test de 100 alumnos vs 30 vacantes<br>• Estimación: 5 pts | **ISSUE-08: Horarios y Aulas (M07)**<br>• Asignado: Franklin<br>• Detección de cruces semanal<br>• Estimación: 8 pts | **ISSUE-02: Seguridad, Roles & Auditoría (M02)**<br>• Asignado: Dany<br>• Control de acceso RBAC y bitácora<br>• Estimación: 5 pts | **ISSUE-06: Constancia de Matrícula QR (M05)**<br>• Asignado: Jhosep<br>• Emisión de PDF con hash SHA-256<br>• *Revisor: Dany Muriel* | **ARCH-01: Estructura Monorepo y Microservicios**<br>• Arquitectura modular desacoplada<br>• Portal Estudiante + Portal Admin<br>• Gateway y Database Client |
+| **ISSUE-14: Pruebas de Carga Concurrente**<br>• Asignado: Dany<br>• Test de 100 alumnos vs 30 vacantes<br>• Estimación: 5 pts | **ISSUE-08: Horarios y Aulas (M07)**<br>• Asignado: Franklin<br>• Detección de cruces semanal<br>• Estimación: 8 pts | **ISSUE-02: Seguridad, Roles & Auditoría (M02)**<br>• Asignado: Dany<br>• Control de acceso RBAC y bitácora<br>• Estimación: 5 pts | **ISSUE-06: Constancia de Matrícula QR (M05)**<br>• Asignado: Jhosep<br>• Emisión de PDF con hash SHA-256<br>• *Revisor: Dany Muriel* | **ARCH-01: API Única Modular en PHP + PDO**<br>• 1 solo endpoint (`backend/public/index.php`)<br>• 8 módulos desacoplados + 1 conexión PDO<br>• Portal Estudiante + Portal Admin |
 | | **ISSUE-09: Pagos y Tesorería (M08)**<br>• Asignado: Franklin<br>• Cobranza y boletas QR sin ORM<br>• Estimación: 8 pts | **ISSUE-03: Expediente Alumno & Kardex (M03)**<br>• Asignado: Franklin<br>• Generador de código universitario<br>• Estimación: 8 pts | | **SPEC-01: Mapeo de 73 Casos de Uso**<br>• Trazabilidad completa con mockups<br>• Diagrama de clases de dominio UML |
 | | **ISSUE-10: Reportes y Actas con Hash (M09)**<br>• Asignado: Jhosep<br>• Padrón y actas digitales<br>• Estimación: 8 pts | **ISSUE-05: Motor de Matrícula Transaccional (M05)**<br>• Asignado: Dany<br>• `sp_registrar_matricula_completa`<br>• Estimación: 13 pts | | |
 | | | **ISSUE-12: UI Portal Alumno en React (M05)**<br>• Asignado: Jhosep<br>• Horario semanal interactivo<br>• Estimación: 8 pts | | |

@@ -89,7 +89,8 @@ final class Router
                 try {
                     $handler = $route['handler'];
                     if (is_array($handler)) {
-                        [$controller, $action] = $handler;
+                        [$controllerOrClass, $action] = $handler;
+                        $controller = is_string($controllerOrClass) ? new $controllerOrClass() : $controllerOrClass;
                         call_user_func_array([$controller, $action], array_values($params));
                     } else {
                         call_user_func_array($handler, array_values($params));

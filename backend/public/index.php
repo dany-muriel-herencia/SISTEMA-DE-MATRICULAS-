@@ -62,16 +62,6 @@ use App\Modules\Reportes\ReportController;
 
 $router = new Router();
 
-// Instanciar controladores modulares (1 solo proceso, 1 sola conexión PDO compartida)
-$authController = new AuthController();
-$studentController = new StudentController();
-$academicController = new AcademicController();
-$scheduleController = new ScheduleController();
-$enrollmentController = new EnrollmentController();
-$financeController = new FinanceController();
-$reportController = new ReportController();
-$rectificationController = new RectificationController();
-
 // =========================================================================
 // HEALTH CHECK (Verificación de la API Única)
 // =========================================================================
@@ -88,82 +78,82 @@ $router->get('/api/v1/health', function (): void {
 // =========================================================================
 // M01 & M02: AUTENTICACIÓN, SEGURIDAD, ROLES Y AUDITORÍA (ISSUE-01, ISSUE-02)
 // =========================================================================
-$router->post('/api/v1/auth/login', [$authController, 'login']);
-$router->post('/api/v1/auth/logout', [$authController, 'logout']);
-$router->get('/api/v1/auth/usuarios', [$authController, 'listarUsuarios']);
-$router->post('/api/v1/auth/roles/asignar', [$authController, 'asignarRol']);
-$router->get('/api/v1/auth/auditoria', [$authController, 'listarAuditoria']);
+$router->post('/api/v1/auth/login', [AuthController::class, 'login']);
+$router->post('/api/v1/auth/logout', [AuthController::class, 'logout']);
+$router->get('/api/v1/auth/usuarios', [AuthController::class, 'listarUsuarios']);
+$router->post('/api/v1/auth/roles/asignar', [AuthController::class, 'asignarRol']);
+$router->get('/api/v1/auth/auditoria', [AuthController::class, 'listarAuditoria']);
 
 // =========================================================================
 // M03: GESTIÓN DE ESTUDIANTES Y KARDEX (ISSUE-03)
 // =========================================================================
-$router->get('/api/v1/students', [$studentController, 'listar']);
-$router->get('/api/v1/students/{idEstudiante}/kardex', [$studentController, 'obtenerKardex']);
-$router->get('/api/v1/students/{idEstudiante}/ficha-medica', [$studentController, 'obtenerFichaMedica']);
+$router->get('/api/v1/students', [StudentController::class, 'listar']);
+$router->get('/api/v1/students/{idEstudiante}/kardex', [StudentController::class, 'obtenerKardex']);
+$router->get('/api/v1/students/{idEstudiante}/ficha-medica', [StudentController::class, 'obtenerFichaMedica']);
 
 // =========================================================================
 // M04: GESTIÓN CURRICULAR, PLANES Y PRERREQUISITOS (ISSUE-04)
 // =========================================================================
-$router->get('/api/v1/academic/facultades', [$academicController, 'listarFacultades']);
-$router->get('/api/v1/academic/planes/{idPlan}/malla', [$academicController, 'obtenerMalla']);
-$router->get('/api/v1/academic/periodos/activo', [$academicController, 'obtenerPeriodoActivo']);
-$router->post('/api/v1/academic/prerrequisitos/validar', [$academicController, 'validarPrerrequisitos']);
+$router->get('/api/v1/academic/facultades', [AcademicController::class, 'listarFacultades']);
+$router->get('/api/v1/academic/planes/{idPlan}/malla', [AcademicController::class, 'obtenerMalla']);
+$router->get('/api/v1/academic/periodos/activo', [AcademicController::class, 'obtenerPeriodoActivo']);
+$router->post('/api/v1/academic/prerrequisitos/validar', [AcademicController::class, 'validarPrerrequisitos']);
 
 // =========================================================================
 // M07: HORARIOS, AULAS Y DETECCIÓN DE CRUCES (ISSUE-08)
 // =========================================================================
-$router->get('/api/v1/schedules/vacantes/{idPeriodo}', [$scheduleController, 'consultarVacantes']);
-$router->get('/api/v1/schedules/secciones/{idCurso}', [$scheduleController, 'listarSeccionesPorCurso']);
-$router->get('/api/v1/schedules/aulas', [$scheduleController, 'listarAulas']);
-$router->post('/api/v1/schedules/validar-cruce', [$scheduleController, 'validarCruceHorario']);
+$router->get('/api/v1/schedules/vacantes/{idPeriodo}', [ScheduleController::class, 'consultarVacantes']);
+$router->get('/api/v1/schedules/secciones/{idCurso}', [ScheduleController::class, 'listarSeccionesPorCurso']);
+$router->get('/api/v1/schedules/aulas', [ScheduleController::class, 'listarAulas']);
+$router->post('/api/v1/schedules/validar-cruce', [ScheduleController::class, 'validarCruceHorario']);
 
 // =========================================================================
 // M05 & M06: MATRÍCULA TRANSACCIONAL, COLA VIRTUAL Y EXCEPCIONES (ISSUE-05, ISSUE-07)
 // =========================================================================
-$router->post('/api/v1/enrollment/registrar-completa', [$enrollmentController, 'registrarMatriculaCompleta']);
-$router->post('/api/v1/enrollment/pendiente', [$enrollmentController, 'crearPendiente']);
-$router->post('/api/v1/enrollment/confirmar', [$enrollmentController, 'confirmar']);
-$router->post('/api/v1/enrollment/curso/inscribir', [$enrollmentController, 'inscribirCurso']);
-$router->post('/api/v1/enrollment/curso/retirar', [$enrollmentController, 'retirarCurso']);
-$router->post('/api/v1/enrollment/anular', [$enrollmentController, 'anular']);
-$router->post('/api/v1/enrollment/excepcion', [$enrollmentController, 'aplicarExcepcion']);
-$router->get('/api/v1/enrollment/consultar/{idEstudiante}/{idPeriodo}', [$enrollmentController, 'consultarMatricula']);
+$router->post('/api/v1/enrollment/registrar-completa', [EnrollmentController::class, 'registrarMatriculaCompleta']);
+$router->post('/api/v1/enrollment/pendiente', [EnrollmentController::class, 'crearPendiente']);
+$router->post('/api/v1/enrollment/confirmar', [EnrollmentController::class, 'confirmar']);
+$router->post('/api/v1/enrollment/curso/inscribir', [EnrollmentController::class, 'inscribirCurso']);
+$router->post('/api/v1/enrollment/curso/retirar', [EnrollmentController::class, 'retirarCurso']);
+$router->post('/api/v1/enrollment/anular', [EnrollmentController::class, 'anular']);
+$router->post('/api/v1/enrollment/excepcion', [EnrollmentController::class, 'aplicarExcepcion']);
+$router->get('/api/v1/enrollment/consultar/{idEstudiante}/{idPeriodo}', [EnrollmentController::class, 'consultarMatricula']);
 
 // Cola de espera de turnos en vivo (M06)
-$router->post('/api/v1/enrollment/cola/ingresar', [$enrollmentController, 'ingresarCola']);
-$router->post('/api/v1/enrollment/cola/atender-siguiente', [$enrollmentController, 'atenderSiguienteCola']);
-$router->post('/api/v1/enrollment/cola/finalizar', [$enrollmentController, 'finalizarTurnoCola']);
-$router->post('/api/v1/enrollment/cola/abandonar', [$enrollmentController, 'abandonarCola']);
-$router->get('/api/v1/enrollment/cola/posicion/{idEstudiante}/{idPeriodo}', [$enrollmentController, 'consultarPosicionCola']);
+$router->post('/api/v1/enrollment/cola/ingresar', [EnrollmentController::class, 'ingresarCola']);
+$router->post('/api/v1/enrollment/cola/atender-siguiente', [EnrollmentController::class, 'atenderSiguienteCola']);
+$router->post('/api/v1/enrollment/cola/finalizar', [EnrollmentController::class, 'finalizarTurnoCola']);
+$router->post('/api/v1/enrollment/cola/abandonar', [EnrollmentController::class, 'abandonarCola']);
+$router->get('/api/v1/enrollment/cola/posicion/{idEstudiante}/{idPeriodo}', [EnrollmentController::class, 'consultarPosicionCola']);
 
 // Lista de espera por sección llena
-$router->post('/api/v1/enrollment/espera/inscribir', [$enrollmentController, 'inscribirListaEspera']);
-$router->post('/api/v1/enrollment/espera/cancelar', [$enrollmentController, 'cancelarListaEspera']);
-$router->post('/api/v1/enrollment/espera/promover', [$enrollmentController, 'promoverListaEspera']);
-$router->get('/api/v1/enrollment/espera/{idMatricula}', [$enrollmentController, 'consultarListaEspera']);
+$router->post('/api/v1/enrollment/espera/inscribir', [EnrollmentController::class, 'inscribirListaEspera']);
+$router->post('/api/v1/enrollment/espera/cancelar', [EnrollmentController::class, 'cancelarListaEspera']);
+$router->post('/api/v1/enrollment/espera/promover', [EnrollmentController::class, 'promoverListaEspera']);
+$router->get('/api/v1/enrollment/espera/{idMatricula}', [EnrollmentController::class, 'consultarListaEspera']);
 
 // =========================================================================
 // M08: FINANZAS, CAJA Y TESORERÍA (ISSUE-09)
 // =========================================================================
-$router->get('/api/v1/finance/conceptos', [$financeController, 'listarConceptos']);
-$router->get('/api/v1/finance/deudas/{idEstudiante}', [$financeController, 'listarDeudasEstudiante']);
-$router->post('/api/v1/finance/pagos/ventanilla', [$financeController, 'registrarPago']);
+$router->get('/api/v1/finance/conceptos', [FinanceController::class, 'listarConceptos']);
+$router->get('/api/v1/finance/deudas/{idEstudiante}', [FinanceController::class, 'listarDeudasEstudiante']);
+$router->post('/api/v1/finance/pagos/ventanilla', [FinanceController::class, 'registrarPago']);
 
 // =========================================================================
 // M09 & M05-QR: REPORTES, CONSTANCIA QR Y ACTAS CON HASH SHA-256 (ISSUE-06, ISSUE-10)
 // =========================================================================
-$router->get('/api/v1/reporting/constancia/{idMatricula}', [$reportController, 'emitirConstanciaQr']);
-$router->get('/api/v1/reporting/nomina/{idSeccion}', [$reportController, 'obtenerNominaSeccion']);
-$router->get('/api/v1/reporting/actas/{idSeccion}', [$reportController, 'emitirActaEvaluacion']);
-$router->post('/api/v1/reporting/cierre-semestre', [$reportController, 'cerrarSemestre']);
+$router->get('/api/v1/reporting/constancia/{idMatricula}', [ReportController::class, 'emitirConstanciaQr']);
+$router->get('/api/v1/reporting/nomina/{idSeccion}', [ReportController::class, 'obtenerNominaSeccion']);
+$router->get('/api/v1/reporting/actas/{idSeccion}', [ReportController::class, 'emitirActaEvaluacion']);
+$router->post('/api/v1/reporting/cierre-semestre', [ReportController::class, 'cerrarSemestre']);
 
 // =========================================================================
 // M10: RECTIFICACIÓN DE MATRÍCULA (ISSUE-11)
 // =========================================================================
-$router->get('/api/v1/rectification/pendientes', [$rectificationController, 'listarPendientes']);
-$router->post('/api/v1/rectification/solicitar', [$rectificationController, 'solicitar']);
-$router->post('/api/v1/rectification/aprobar', [$rectificationController, 'aprobar']);
-$router->post('/api/v1/rectification/rechazar', [$rectificationController, 'rechazar']);
+$router->get('/api/v1/rectification/pendientes', [RectificationController::class, 'listarPendientes']);
+$router->post('/api/v1/rectification/solicitar', [RectificationController::class, 'solicitar']);
+$router->post('/api/v1/rectification/aprobar', [RectificationController::class, 'aprobar']);
+$router->post('/api/v1/rectification/rechazar', [RectificationController::class, 'rechazar']);
 
 // Despachar solicitud
 $router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $_SERVER['REQUEST_URI'] ?? '/');

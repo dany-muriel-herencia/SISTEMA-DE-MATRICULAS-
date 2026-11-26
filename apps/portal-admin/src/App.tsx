@@ -69,14 +69,14 @@ export const App: React.FC = () => {
             Centro de Control: {menuItems.find(m => m.id === moduloActivo)?.label}
           </h1>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-            Servicio conectado al API Gateway en puerto 8000
+            Conectado al Endpoint Único PHP Nativo + PDO (backend/public/index.php — Cero ORM)
           </p>
         </header>
 
         <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '24px', border: '1px solid #e2e8f0' }}>
           <h3 style={{ marginTop: 0, color: '#1e293b' }}>Panel Operativo Activo</h3>
           <p style={{ color: '#475569', fontSize: '14px' }}>
-            Módulo cargado exitosamente. Listo para vincular peticiones hacia los endpoints correspondientes de los microservicios.
+            Módulo cargado exitosamente. Conectado a la API Única en PHP con PDO llamando a los Procedimientos Almacenados de MySQL 8.0.
           </p>
         </div>
       </main>
