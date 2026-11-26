@@ -1,0 +1,4 @@
+# Archivos de configuración y variables de entorno
+.env
+.env.*
+!.env.example

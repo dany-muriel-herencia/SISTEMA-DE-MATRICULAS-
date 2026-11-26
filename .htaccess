@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Redirigir todas las llamadas a /api/* hacia el único endpoint PHP
+    RewriteCond %{REQUEST_URI} ^.*/api/ [NC]
+    RewriteRule ^api/(.*)$ backend/public/index.php [QSA,L]
+</IfModule>
