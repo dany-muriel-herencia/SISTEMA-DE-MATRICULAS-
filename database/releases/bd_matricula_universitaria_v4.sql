@@ -14,7 +14,7 @@
 --   TX-03 sp_registrar_pago                 TX-04 colas de turnos
 --   TX-05 sp_cerrar_semestre_academico      TX-06 espera / anulación / excepciones
 --
--- CONVENCIONES PARA EL BACKEND (PHP NATIVO / PDO - SIN ORM):
+-- CONVENCIONES PARA EL BACKEND
 --  * Todo procedimiento público devuelve OUT p_codigo_resp ('EXITO' o código de
 --    negocio) y OUT p_mensaje. 'ERROR_SQL' = fallo inesperado (ya hubo ROLLBACK).
 --  * Si llega 'ERROR_SQL' con "Deadlock" (error 1213) o "Lock wait timeout"
@@ -27,6 +27,8 @@
 --    procedimientos. Un UPDATE/INSERT directo en detalle_matricula NO ajusta
 --    total_creditos ni vacantes_ocupadas.
 -- =============================================================================
+
+-- SET GLOBAL log_bin_trust_function_creators = 1; -- Descomentar solo si MySQL da el error 1419 y el usuario es root
 
 DROP DATABASE IF EXISTS bd_matricula_universitaria;
 CREATE DATABASE bd_matricula_universitaria 
@@ -351,6 +353,7 @@ CREATE TABLE comprobantes (
 ) ENGINE=InnoDB;
 
 -- 6. MÓDULO DE MATRÍCULA Y REGISTRO ACADÉMICO
+-- COLA 1: turnos de matrícula (v4: se agregan hora_turno y hora_fin)
 CREATE TABLE cola_matricula (
     id_cola INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     id_estudiante INT UNSIGNED NOT NULL,
@@ -419,6 +422,7 @@ CREATE TABLE detalle_matricula (
         ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- v4: se agrega DEUDA_PENDIENTE para registrar el bypass de deuda con resolución
 CREATE TABLE excepciones_matricula (
     id_excepcion INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     id_matricula INT UNSIGNED NOT NULL,
@@ -435,6 +439,7 @@ CREATE TABLE excepciones_matricula (
         ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- COLA 2 (NUEVA): lista de espera por sección sin vacantes
 CREATE TABLE lista_espera_seccion (
     id_espera INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     id_seccion INT UNSIGNED NOT NULL,
@@ -454,6 +459,7 @@ CREATE TABLE lista_espera_seccion (
 ) ENGINE=InnoDB;
 
 -- 7. MÓDULO DE RECTIFICACIONES DE MATRÍCULA
+-- COLA 3: las filas con estado SOLICITADO forman la cola FIFO de solicitudes
 CREATE TABLE rectificaciones (
     id_rectificacion INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     id_matricula INT UNSIGNED NOT NULL,
@@ -490,7 +496,7 @@ CREATE TABLE detalle_rectificacion (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- VISTAS
+-- Vistas de consulta para el backend
 CREATE OR REPLACE VIEW v_cola_matricula AS
 SELECT
     cm.id_cola, cm.id_periodo, p.codigo_periodo, cm.posicion, cm.priorizado, cm.estado_cola,
@@ -533,12 +539,14 @@ JOIN estudiantes e            ON e.id_estudiante = m.id_estudiante
 JOIN usuarios u               ON u.id_usuario = e.id_usuario
 WHERE r.estado = 'SOLICITADO';
 
+
 -- =============================================================================
 -- PARTE 2: FUNCIONES ALMACENADAS
 -- =============================================================================
 
 DELIMITER $$
 
+-- ---- Parámetros del reglamento en un solo lugar -----------------------------
 DROP FUNCTION IF EXISTS fn_nota_minima$$
 CREATE FUNCTION fn_nota_minima() RETURNS DECIMAL(4,2)
 DETERMINISTIC NO SQL
@@ -554,6 +562,9 @@ CREATE FUNCTION fn_promedio_merito() RETURNS DECIMAL(4,2)
 DETERMINISTIC NO SQL
 RETURN 14.00$$
 
+-- ---- 1. fn_detectar_cruce_horario -------------------------------------------
+-- Intervalo [A1,A2] solapa con [B1,B2] <=> A1 < B2 Y A2 > B1 en el mismo día.
+-- Solo compara contra cursos INSCRITOS de la matrícula. Retorna 1 si hay cruce.
 DROP FUNCTION IF EXISTS fn_detectar_cruce_horario$$
 CREATE FUNCTION fn_detectar_cruce_horario(
     p_id_matricula INT UNSIGNED,
@@ -589,6 +600,10 @@ BEGIN
     RETURN IF(v_cruce > 0, 1, 0);
 END$$
 
+-- ---- 2. fn_validar_prerrequisitos -------------------------------------------
+-- Cumple un prerrequisito si el estudiante lo aprobó (nota >= mínima) en un
+-- período CERRADO, o si el curso fue CONVALIDADO. Excluye matrículas anuladas
+-- y retiros. Retorna 1 si cumple todos (o el curso no tiene prerrequisitos).
 DROP FUNCTION IF EXISTS fn_validar_prerrequisitos$$
 CREATE FUNCTION fn_validar_prerrequisitos(
     p_id_estudiante INT UNSIGNED,
@@ -633,6 +648,8 @@ BEGIN
     RETURN IF(v_prereq_cumplidos >= v_total_prereq, 1, 0);
 END$$
 
+-- ---- 3. fn_vacantes_disponibles ---------------------------------------------
+-- Retorna INT (NULL si la sección no existe; >= 0 si existe).
 DROP FUNCTION IF EXISTS fn_vacantes_disponibles$$
 CREATE FUNCTION fn_vacantes_disponibles(
     p_id_seccion INT UNSIGNED
@@ -655,6 +672,8 @@ BEGIN
     RETURN GREATEST(v_disponibles, 0);
 END$$
 
+-- ---- 4. fn_calcular_creditos_matricula --------------------------------------
+-- Suma real de créditos de los cursos INSCRITOS (sirve para auditar total_creditos).
 DROP FUNCTION IF EXISTS fn_calcular_creditos_matricula$$
 CREATE FUNCTION fn_calcular_creditos_matricula(
     p_id_matricula INT UNSIGNED
@@ -676,6 +695,9 @@ BEGIN
     RETURN v_total_creditos;
 END$$
 
+-- ---- 5. fn_validar_limite_creditos ------------------------------------------
+-- 1 si total_creditos + nuevos <= límite base + creditos_adicionales; 0 si excede
+-- o si la matrícula no existe.
 DROP FUNCTION IF EXISTS fn_validar_limite_creditos$$
 CREATE FUNCTION fn_validar_limite_creditos(
     p_id_matricula    INT UNSIGNED,
@@ -705,6 +727,7 @@ BEGIN
     RETURN 0;
 END$$
 
+-- ---- 6. fn_validar_curso_en_plan --------------------------------------------
 DROP FUNCTION IF EXISTS fn_validar_curso_en_plan$$
 CREATE FUNCTION fn_validar_curso_en_plan(
     p_id_estudiante INT UNSIGNED,
@@ -733,6 +756,7 @@ BEGIN
     RETURN IF(v_pertenece > 0, 1, 0);
 END$$
 
+-- ---- 7. fn_calcular_saldo_deuda ---------------------------------------------
 DROP FUNCTION IF EXISTS fn_calcular_saldo_deuda$$
 CREATE FUNCTION fn_calcular_saldo_deuda(
     p_id_deuda INT UNSIGNED
@@ -759,6 +783,11 @@ BEGIN
     RETURN GREATEST(v_monto_deuda - v_total_pagos, 0.00);
 END$$
 
+-- ---- 8. fn_creditos_adicionales (NUEVA: regla única de créditos extra) ------
+-- +4 créditos si el promedio del semestre anterior es >= fn_promedio_merito(),
+-- o si el estudiante tiene una resolución AMPLIACION_CREDITOS vigente: con
+-- fecha_efecto ya cumplida y dentro del MISMO AÑO del período. (La tabla
+-- resoluciones_estudiante no guarda cantidad de créditos; la ampliación es fija.)
 DROP FUNCTION IF EXISTS fn_creditos_adicionales$$
 CREATE FUNCTION fn_creditos_adicionales(
     p_id_estudiante INT UNSIGNED,
@@ -796,10 +825,28 @@ BEGIN
     RETURN 0;
 END$$
 
+
+-- =============================================================================
+-- PARTE 3: TRIGGERS
+-- =============================================================================
+-- v4 NO usa triggers. Toda la mutación (créditos, vacantes, estados de deuda,
+-- créditos adicionales, auditoría) queda explícita en procedimientos
+-- transaccionales, con orden de bloqueo controlado: matriculas -> secciones.
+
+
 -- =============================================================================
 -- PARTE 4: PROCEDIMIENTOS INTERNOS (sp_i_*) — SIN TRANSACCIÓN PROPIA
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- sp_i_inscribir_curso
+-- p_modo = 'MATRICULA' : exige estar dentro de la ventana de matrícula.
+-- p_modo = 'INTERNO'   : omite la ventana (ya la validó el llamador: rectificación
+--                        aprobada o promoción desde lista de espera). El período
+--                        debe seguir ACTIVO en ambos modos.
+-- Orden de bloqueos: matriculas -> secciones. Si la sección ya se retiró antes
+-- en la misma matrícula, se REACTIVA la fila (evita violar uq_detalle_mat_seccion).
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_i_inscribir_curso$$
 CREATE PROCEDURE sp_i_inscribir_curso(
     IN  p_id_matricula INT UNSIGNED,
@@ -826,6 +873,7 @@ proc_ins: BEGIN
     DECLARE v_origen_calc       VARCHAR(20);
     DECLARE v_id_detalle_prev   INT UNSIGNED;
 
+    -- PASO 1: bloquear la MATRÍCULA
     SELECT m.id_estudiante, m.id_periodo, m.estado, m.bypass_cruces
     INTO   v_id_estudiante, v_id_periodo_mat, v_estado_matricula, v_bypass_cruces
     FROM   matriculas m
@@ -844,6 +892,7 @@ proc_ins: BEGIN
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 2: período
     SELECT inicio_matricula, fin_matricula, estado
     INTO   v_inicio_matricula, v_fin_matricula, v_estado_periodo
     FROM   periodos_academicos
@@ -862,6 +911,7 @@ proc_ins: BEGIN
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 3: bloquear la SECCIÓN
     SELECT s.id_curso, s.id_periodo, s.vacantes_total, s.vacantes_ocupadas, s.vacantes_extra, c.creditos
     INTO   v_id_curso, v_id_periodo_sec, v_vac_total, v_vac_ocup, v_vac_extra, v_creditos_curso
     FROM   secciones s
@@ -881,12 +931,14 @@ proc_ins: BEGIN
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 4: vacantes (tras el bloqueo pesimista)
     IF ((CAST(v_vac_total AS SIGNED) + CAST(v_vac_extra AS SIGNED)) - CAST(v_vac_ocup AS SIGNED)) <= 0 THEN
         SET p_codigo_resp = 'SIN_VACANTES';
         SET p_mensaje     = 'No quedan vacantes en la sección. Puede anotarse en la lista de espera.';
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 5: reglas de negocio
     IF EXISTS (
         SELECT 1 FROM detalle_matricula 
         WHERE id_matricula = p_id_matricula AND id_seccion = p_id_seccion AND estado = 'INSCRITO'
@@ -926,12 +978,15 @@ proc_ins: BEGIN
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 6: límite de créditos
     IF fn_validar_limite_creditos(p_id_matricula, v_creditos_curso) = 0 THEN
         SET p_codigo_resp = 'LIMITE_CREDITOS';
-        SET p_mensaje     = CONCAT('Supera el límite de créditos permitidos. Curso solicitado: ', v_creditos_curso, ' créditos.');
+        SET p_mensaje     = CONCAT('Supera el límite de créditos permitidos. Curso solicitado: ',
+                                   v_creditos_curso, ' créditos.');
         LEAVE proc_ins;
     END IF;
 
+    -- PASO 7: origen según desaprobaciones previas
     SELECT COUNT(*) INTO v_veces_desaprobado
     FROM detalle_matricula dm
     JOIN secciones sec ON sec.id_seccion = dm.id_seccion
@@ -949,6 +1004,7 @@ proc_ins: BEGIN
         SET v_origen_calc = 'TERCERA_VEZ';
     END IF;
 
+    -- PASO 8: inscribir (reactivando la fila si había sido retirada)
     SELECT id_detalle INTO v_id_detalle_prev
     FROM detalle_matricula
     WHERE id_matricula = p_id_matricula AND id_seccion = p_id_seccion AND estado = 'RETIRADO'
@@ -975,6 +1031,14 @@ proc_ins: BEGIN
     SET p_mensaje     = 'Asignatura inscrita correctamente en la matrícula.';
 END proc_ins$$
 
+-- -----------------------------------------------------------------------------
+-- sp_i_espera_promover
+-- Mientras la sección tenga vacantes, asigna al primero de su lista de espera.
+-- Si no cumple las reglas (prerrequisitos, cruce, créditos...), queda EXPIRADO y
+-- se continúa con el siguiente. NOTA: bloquea la matrícula del promovido estando
+-- ya bloqueada la sección (orden inverso al canónico); si hay deadlock, InnoDB
+-- aborta una transacción y el backend reintenta (ver convenciones).
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_i_espera_promover$$
 CREATE PROCEDURE sp_i_espera_promover(IN p_id_seccion INT UNSIGNED)
 BEGIN
@@ -1024,6 +1088,12 @@ BEGIN
     END WHILE;
 END$$
 
+-- -----------------------------------------------------------------------------
+-- sp_i_retirar_curso
+-- Retira el curso (UPDATE condicional atómico + ROW_COUNT), descuenta créditos,
+-- libera la vacante y PROMUEVE al primero de la lista de espera de esa sección.
+-- Orden de bloqueos: matriculas -> secciones.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_i_retirar_curso$$
 CREATE PROCEDURE sp_i_retirar_curso(
     IN  p_id_matricula INT UNSIGNED,
@@ -1093,12 +1163,20 @@ proc_ret: BEGIN
     VALUES (v_id_usuario, 'MATRICULA', 'RETIRO_CURSO', 'detalle_matricula', p_id_matricula,
             CONCAT('Retiro de sección ', p_id_seccion, ' (', v_creditos, ' créditos)'));
 
+    -- La vacante liberada pasa al primero de la lista de espera
     CALL sp_i_espera_promover(p_id_seccion);
 
     SET p_codigo_resp = 'EXITO';
     SET p_mensaje     = 'Curso retirado exitosamente de la matrícula.';
 END proc_ret$$
 
+-- -----------------------------------------------------------------------------
+-- sp_crear_matricula_pendiente (auxiliar de TX-01)
+-- Valida período, estudiante, duplicidad, DEUDA VENCIDA y APTO MÉDICO. Para
+-- saltarse deuda o ficha médica se requiere administrador Y número de resolución;
+-- queda registrado en excepciones_matricula y en los flags bypass_*.
+-- Créditos adicionales: fn_creditos_adicionales (regla única).
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_crear_matricula_pendiente$$
 CREATE PROCEDURE sp_crear_matricula_pendiente(
     IN  p_id_estudiante  INT UNSIGNED,
@@ -1164,6 +1242,7 @@ proc_crear_mat: BEGIN
         LEAVE proc_crear_mat;
     END IF;
 
+    -- Deuda vencida y ficha médica
     SELECT COUNT(*) INTO v_deuda
     FROM deudas_estudiante
     WHERE id_estudiante = p_id_estudiante
@@ -1229,6 +1308,9 @@ proc_crear_mat: BEGIN
     SET p_mensaje     = 'Matrícula aperturada en estado PENDIENTE exitosamente.';
 END proc_crear_mat$$
 
+-- -----------------------------------------------------------------------------
+-- sp_confirmar_matricula (auxiliar de TX-01): PENDIENTE -> CONFIRMADA
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_confirmar_matricula$$
 CREATE PROCEDURE sp_confirmar_matricula(
     IN  p_id_matricula INT UNSIGNED,
@@ -1283,8 +1365,11 @@ proc_conf_mat: BEGIN
     SET p_mensaje     = 'Matrícula confirmada exitosamente.';
 END proc_conf_mat$$
 
+
 -- =============================================================================
 -- PARTE 5: COLA 1 — TURNOS DE MATRÍCULA (TX-04)
+-- Atención: primero los priorizados (promedio anterior >= fn_promedio_merito()),
+-- luego por orden de llegada. La fila del período actúa como mutex de la cola.
 -- =============================================================================
 
 DROP PROCEDURE IF EXISTS sp_ingresar_cola_matricula$$
@@ -1402,6 +1487,7 @@ proc_cola_in: BEGIN
         VALUES (p_id_estudiante, p_id_periodo, v_nueva_pos, 'EN_ESPERA', v_prioridad);
         SET v_id_cola = LAST_INSERT_ID();
     ELSE
+        -- Reingreso tras abandono, con nueva posición
         UPDATE cola_matricula
         SET posicion = v_nueva_pos, estado_cola = 'EN_ESPERA', priorizado = v_prioridad,
             hora_ingreso = NOW(), hora_turno = NULL, hora_fin = NULL
@@ -1569,6 +1655,7 @@ proc_abandono: BEGIN
     SET p_mensaje     = 'El estudiante ha abandonado la cola de matrícula.';
 END proc_abandono$$
 
+-- Libera turnos que excedieron el tiempo permitido (ej. 15 minutos)
 DROP PROCEDURE IF EXISTS sp_expirar_turnos_cola$$
 CREATE PROCEDURE sp_expirar_turnos_cola(
     IN  p_id_periodo SMALLINT UNSIGNED,
@@ -1613,10 +1700,18 @@ BEGIN
       AND cm.id_periodo = p_id_periodo;
 END$$
 
+
 -- =============================================================================
 -- PARTE 6: MATRÍCULA (TX-01) Y OPERACIONES SOBRE CURSOS
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- sp_registrar_matricula_completa  (TX-01) — PUNTO DE ENTRADA ÚNICO
+-- Sin p_id_admin el estudiante debe estar EN_TURNO en la cola; con administrador
+-- puede matricularse sin pasar por la cola. Todo o nada: matrícula, cursos,
+-- confirmación, cierre del turno y auditoría. Secciones procesadas en orden
+-- ascendente (previene deadlocks entre matrículas simultáneas).
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_registrar_matricula_completa$$
 CREATE PROCEDURE sp_registrar_matricula_completa(
     IN  p_id_estudiante   INT UNSIGNED,
@@ -1657,6 +1752,7 @@ proc_matricula: BEGIN
         LEAVE proc_matricula;
     END IF;
 
+    -- Tabla temporal (DDL de tablas TEMPORARY no confirma transacciones)
     CREATE TEMPORARY TABLE IF NOT EXISTS tmp_secciones_matricula (
         id_sec INT UNSIGNED PRIMARY KEY
     ) ENGINE = MEMORY;
@@ -1688,6 +1784,7 @@ proc_matricula: BEGIN
 
     START TRANSACTION;
 
+    -- 0. Control de turno (solo cuando NO actúa un administrador)
     SELECT estado_cola INTO v_estado_cola
     FROM cola_matricula
     WHERE id_estudiante = p_id_estudiante AND id_periodo = p_id_periodo
@@ -1707,6 +1804,7 @@ proc_matricula: BEGIN
         END IF;
     END IF;
 
+    -- 1. Aperturar matrícula PENDIENTE
     CALL sp_crear_matricula_pendiente(
         p_id_estudiante, p_id_periodo, p_id_admin, p_numero_rd,
         p_id_matricula, v_constancia, v_resp_aux, v_msg_aux
@@ -1720,6 +1818,7 @@ proc_matricula: BEGIN
         LEAVE proc_matricula;
     END IF;
 
+    -- 2. Inscribir cada sección en orden ascendente
     WHILE EXISTS (SELECT 1 FROM tmp_secciones_matricula) DO
         SELECT MIN(id_sec) INTO v_seccion_id FROM tmp_secciones_matricula;
 
@@ -1736,6 +1835,7 @@ proc_matricula: BEGIN
         DELETE FROM tmp_secciones_matricula WHERE id_sec = v_seccion_id;
     END WHILE;
 
+    -- 3. Confirmar (PENDIENTE -> CONFIRMADA)
     CALL sp_confirmar_matricula(p_id_matricula, p_id_admin, v_resp_aux, v_msg_aux);
 
     IF v_resp_aux <> 'EXITO' THEN
@@ -1746,12 +1846,14 @@ proc_matricula: BEGIN
         LEAVE proc_matricula;
     END IF;
 
+    -- 4. Cerrar el turno en la cola (si existe)
     UPDATE cola_matricula
     SET estado_cola = 'FINALIZADO', hora_fin = NOW()
     WHERE id_estudiante = p_id_estudiante
       AND id_periodo    = p_id_periodo
       AND estado_cola IN ('EN_TURNO', 'EN_ESPERA');
 
+    -- 5. Auditoría
     INSERT INTO auditoria (id_usuario, modulo, accion, tabla_afectada, id_registro, detalle)
     VALUES (
         COALESCE(p_id_admin, (SELECT id_usuario FROM estudiantes WHERE id_estudiante = p_id_estudiante)),
@@ -1765,6 +1867,10 @@ proc_matricula: BEGIN
     SET p_mensaje     = CONCAT('Matrícula completa procesada exitosamente. Constancia: ', v_constancia);
 END proc_matricula$$
 
+-- -----------------------------------------------------------------------------
+-- sp_inscribir_curso_matricula (público, transaccional)
+-- Agrega un curso a una matrícula ya existente (dentro de la ventana de matrícula).
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_inscribir_curso_matricula$$
 CREATE PROCEDURE sp_inscribir_curso_matricula(
     IN  p_id_matricula INT UNSIGNED,
@@ -1793,6 +1899,11 @@ BEGIN
     END IF;
 END$$
 
+-- -----------------------------------------------------------------------------
+-- sp_retirar_curso (público, transaccional)
+-- Solo entre el inicio de matrícula y el fin de rectificación del período.
+-- Libera la vacante y promueve la lista de espera en la misma transacción.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_retirar_curso$$
 CREATE PROCEDURE sp_retirar_curso(
     IN  p_id_matricula INT UNSIGNED,
@@ -1842,6 +1953,11 @@ proc_retiro: BEGIN
     END IF;
 END proc_retiro$$
 
+-- -----------------------------------------------------------------------------
+-- sp_anular_matricula (TX-06, administrador)
+-- Retira todos los cursos (liberando vacantes y promoviendo las esperas),
+-- cancela sus propias esperas y marca la matrícula como ANULADA.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_anular_matricula$$
 CREATE PROCEDURE sp_anular_matricula(
     IN  p_id_matricula INT UNSIGNED,
@@ -1892,6 +2008,7 @@ proc_anular: BEGIN
         LEAVE proc_anular;
     END IF;
 
+    -- Primero se cancelan sus propias esperas para que no se auto-promueva
     UPDATE lista_espera_seccion
     SET estado = 'CANCELADO', fecha_atencion = NOW()
     WHERE id_matricula = p_id_matricula AND estado = 'EN_ESPERA';
@@ -1929,6 +2046,10 @@ proc_anular: BEGIN
     SET p_mensaje     = 'Matrícula anulada; vacantes liberadas y listas de espera procesadas.';
 END proc_anular$$
 
+-- -----------------------------------------------------------------------------
+-- sp_aplicar_excepcion (TX-06, administrador)
+-- Registra una excepción con número de resolución y aplica su efecto.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_aplicar_excepcion$$
 CREATE PROCEDURE sp_aplicar_excepcion(
     IN  p_id_matricula   INT UNSIGNED,
@@ -2010,8 +2131,11 @@ proc_exc: BEGIN
     SET p_mensaje     = 'Excepción registrada y aplicada a la matrícula.';
 END proc_exc$$
 
+
 -- =============================================================================
 -- PARTE 7: COLA 2 — LISTA DE ESPERA POR SECCIÓN (TX-06)
+-- La promoción automática ocurre en sp_i_retirar_curso (retiro, anulación o
+-- rectificación aprobada). sp_espera_promover permite reprocesarla manualmente.
 -- =============================================================================
 
 DROP PROCEDURE IF EXISTS sp_espera_inscribir$$
@@ -2050,6 +2174,7 @@ proc_esp: BEGIN
     SET p_posicion = NULL;
     START TRANSACTION;
 
+    -- La fila de la sección actúa como mutex de su lista de espera
     SELECT id_curso, id_periodo INTO v_id_curso, v_per_sec
     FROM secciones WHERE id_seccion = p_id_seccion FOR UPDATE;
 
@@ -2199,6 +2324,7 @@ BEGIN
     ORDER BY le.fecha_registro DESC;
 END$$
 
+-- Administrador: reprocesar la lista (p. ej. tras aumentar vacantes_extra)
 DROP PROCEDURE IF EXISTS sp_espera_promover$$
 CREATE PROCEDURE sp_espera_promover(
     IN  p_id_seccion  INT UNSIGNED,
@@ -2248,11 +2374,16 @@ proc_prom: BEGIN
     SET p_mensaje     = CONCAT('Solicitudes procesadas de la lista de espera: ', p_procesados);
 END proc_prom$$
 
+
 -- =============================================================================
 -- PARTE 8: COLA 3 — SOLICITUDES DE RECTIFICACIÓN (TX-02)
+-- Flujo: el estudiante SOLICITA (queda en cola FIFO: v_rectificaciones_pendientes)
+--        -> el administrador APRUEBA (ejecuta el movimiento) o RECHAZA.
+-- Reemplaza al antiguo sp_rectificar_matricula (que aprobaba todo al instante).
+-- La ventana de rectificación se valida al SOLICITAR.
 -- =============================================================================
 
-DROP PROCEDURE IF EXISTS sp_rectificar_matricula$$
+DROP PROCEDURE IF EXISTS sp_rectificar_matricula$$   -- obsoleto en v4
 
 DROP PROCEDURE IF EXISTS sp_solicitar_rectificacion$$
 CREATE PROCEDURE sp_solicitar_rectificacion(
@@ -2364,6 +2495,7 @@ proc_sol: BEGIN
         END IF;
     END IF;
 
+    -- Acta provisional única; luego se reemplaza por el formato definitivo basado en el id
     INSERT INTO rectificaciones (id_matricula, id_admin, nro_acta, estado, observaciones)
     VALUES (p_id_matricula, NULL, SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), 'SOLICITADO',
             CONCAT('Solicitud de ', p_tipo_movimiento));
@@ -2443,13 +2575,15 @@ proc_aprob: BEGIN
     SELECT tipo_movimiento, id_seccion, seccion_destino INTO v_tipo, v_origen, v_destino
     FROM detalle_rectificacion WHERE id_rectificacion = p_id_rectificacion LIMIT 1;
 
+    -- Ejecución en modo INTERNO: la ventana ya se validó al solicitar
     IF v_tipo = 'RETIRO' THEN
         CALL sp_i_retirar_curso(v_id_matricula, v_origen, v_resp, v_msg_aux);
 
     ELSEIF v_tipo = 'AGREGAR' THEN
         CALL sp_i_inscribir_curso(v_id_matricula, v_destino, 'INTERNO', v_resp, v_msg_aux);
 
-    ELSE
+    ELSE -- CAMBIO_SECCION
+        -- Pre-bloqueo de ambas secciones en orden ascendente (previene deadlocks cruzados)
         SELECT id_seccion INTO v_dummy FROM secciones WHERE id_seccion = LEAST(v_origen, v_destino) FOR UPDATE;
         SELECT id_seccion INTO v_dummy FROM secciones WHERE id_seccion = GREATEST(v_origen, v_destino) FOR UPDATE;
 
@@ -2460,7 +2594,7 @@ proc_aprob: BEGIN
     END IF;
 
     IF v_resp <> 'EXITO' THEN
-        ROLLBACK;
+        ROLLBACK;  -- deshace también el retiro de origen de un cambio de sección
         SET p_codigo_resp = v_resp;
         SET p_mensaje     = CONCAT('No se pudo aprobar (nada fue modificado): ', v_msg_aux);
         LEAVE proc_aprob;
@@ -2540,10 +2674,18 @@ proc_rech: BEGIN
     SET p_mensaje     = CONCAT('Solicitud rechazada. Acta: ', v_acta);
 END proc_rech$$
 
+
 -- =============================================================================
 -- PARTE 9: PAGOS (TX-03) Y CIERRE DE SEMESTRE (TX-05)
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- sp_registrar_pago (TX-03)
+-- FOR UPDATE sobre la deuda serializa los pagos de una misma deuda. El correlativo
+-- de la serie B001 se calcula con FOR UPDATE dentro de la transacción; el UNIQUE
+-- uq_serie_correlativo es la red de seguridad: ante colisión se hace ROLLBACK y
+-- se devuelve ERROR_SQL para que el backend reintente.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_registrar_pago$$
 CREATE PROCEDURE sp_registrar_pago(
     IN  p_id_deuda        INT UNSIGNED,
@@ -2666,6 +2808,11 @@ proc_pago: BEGIN
     SET p_mensaje     = CONCAT('Pago registrado correctamente. Comprobante: B001-', LPAD(v_correlativo, 6, '0'), ' (Saldo restante: S/ ', v_nuevo_saldo, ')');
 END proc_pago$$
 
+-- -----------------------------------------------------------------------------
+-- sp_cerrar_semestre_academico (TX-05)
+-- Promedio del semestre, créditos aprobados y promedio ponderado acumulado; cierra
+-- las colas del período (turnos y listas de espera) y marca el período CERRADO.
+-- -----------------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_cerrar_semestre_academico$$
 CREATE PROCEDURE sp_cerrar_semestre_academico(
     IN  p_id_periodo         SMALLINT UNSIGNED,
@@ -2727,6 +2874,7 @@ proc_cierre: BEGIN
 
     SET p_total_actualizados = ROW_COUNT();
 
+    -- Promedio ponderado acumulado (todo el historial) de los matriculados del período
     UPDATE estudiantes e
     JOIN (
         SELECT 
@@ -2745,6 +2893,7 @@ proc_cierre: BEGIN
     SET e.promedio_ponderado = h.pp
     WHERE h.pp IS NOT NULL;
 
+    -- Cierre de las colas del período
     UPDATE cola_matricula
     SET estado_cola = 'ABANDONADO', hora_fin = NOW()
     WHERE id_periodo = p_id_periodo AND estado_cola IN ('EN_ESPERA', 'EN_TURNO');
@@ -2764,6 +2913,7 @@ proc_cierre: BEGIN
 
     SET p_mensaje = CONCAT('Semestre académico cerrado exitosamente. Estudiantes actualizados: ', p_total_actualizados);
 END proc_cierre$$
+
 
 -- =============================================================================
 -- PARTE 10: PROCEDIMIENTOS DE CONSULTA (solo lectura)
@@ -2831,12 +2981,22 @@ END$$
 
 DELIMITER ;
 
+-- (Opcional) Evento que libera turnos vencidos cada minuto.
+-- Requiere: SET GLOBAL event_scheduler = ON;
+-- CREATE EVENT IF NOT EXISTS ev_expirar_turnos
+-- ON SCHEDULE EVERY 1 MINUTE
+-- DO CALL sp_expirar_turnos_cola(2, 15, @total);
+
+
 -- =============================================================================
 -- PARTE 11: CARGA MASIVA DE DATOS (SEED COHERENTE SIN TRIGGERS)
+-- Como no hay triggers, total_creditos y vacantes_ocupadas del historial se
+-- cargan EXPLÍCITOS y coinciden con el detalle (ver verificaciones al final).
 -- =============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- 1. Roles y Usuarios
 INSERT INTO roles (id_rol, nombre_rol, descripcion) VALUES
 (1, 'ADMINISTRADOR', 'Personal de Dirección de Asuntos Académicos y OTI'),
 (2, 'DOCENTE',       'Catedrático responsable de dictado y evaluación'),
@@ -2864,6 +3024,7 @@ INSERT INTO usuarios (id_usuario, codigo_usuario, email_institucional, password_
 (19, '2024-119009', 'est.sbravo@unjbg.edu.pe',     SHA2('Est2026*', 256), 'Sofía',     'Bravo Centeno',     '72345679', 3, 'ACTIVO'),
 (20, '2024-119010', 'est.gnavarro@unjbg.edu.pe',   SHA2('Est2026*', 256), 'Gabriel',   'Navarro Luque',     '72345680', 3, 'ACTIVO');
 
+-- 2. Facultades, Escuelas y Planes
 INSERT INTO facultades (id_facultad, codigo_facultad, nombre, decano, activo) VALUES
 (1, 'FAIN', 'Facultad de Ingeniería',                         'Dr. Edwin Huarachi Huayta', 1),
 (2, 'FCAG', 'Facultad de Ciencias Agropecuarias',             'Dr. Luis Ramos Zeballos',   1),
@@ -2877,6 +3038,7 @@ INSERT INTO planes_estudio (id_plan, id_escuela, codigo_plan, nombre_plan, anio_
 (1, 1, 'ESIS-2022', 'Plan Curricular Flexible 2022 - ESIS', 2022, 210, 'VIGENTE'),
 (2, 2, 'CIV-2022',  'Plan Curricular Flexible 2022 - Civil', 2022, 215, 'VIGENTE');
 
+-- 3. Cursos, Malla y Prerrequisitos
 INSERT INTO cursos (id_curso, codigo_curso, nombre, creditos, horas_teoria, horas_practica, tipo, activo) VALUES
 (1,  'ESIS-101', 'Cálculo I',                      4, 3, 2, 'OBLIGATORIO', 1),
 (2,  'ESIS-102', 'Algoritmos y Programación',       4, 3, 2, 'OBLIGATORIO', 1),
@@ -2899,8 +3061,16 @@ INSERT INTO malla_curricular (id_plan, id_curso, ciclo) VALUES
 (1, 10, 4), (1, 11, 4), (1, 12, 4), (1, 13, 4);
 
 INSERT INTO prerrequisitos (id_curso, id_curso_req) VALUES
-(4, 1), (5, 2), (7, 5), (8, 2), (10, 7), (11, 5), (12, 3), (13, 8);
+(4, 1),   -- Cálculo II requiere Cálculo I
+(5, 2),   -- Estructuras de Datos requiere Algoritmos
+(7, 5),   -- Base de Datos I requiere Estructuras de Datos
+(8, 2),   -- POO requiere Algoritmos
+(10, 7),  -- Base de Datos II requiere Base de Datos I
+(11, 5),  -- IA requiere Estructuras de Datos
+(12, 3),  -- Redes requiere Introducción a la Computación
+(13, 8);  -- Análisis y Diseño requiere POO
 
+-- 4. Estudiantes y Ficha Médica
 INSERT INTO estudiantes (id_estudiante, id_usuario, id_escuela, id_plan, codigo_universitario, anio_ingreso, modalidad_ingreso, ciclo_actual, estado_academico, promedio_ponderado, promedio_semestre_anterior, creditos_aprobados) VALUES
 (1,  11, 1, 1, '2024-119001', 2024, 'EXAMEN ORDINARIO', 4, 'REGULAR', 15.80, 16.20, 64),
 (2,  12, 1, 1, '2024-119002', 2024, 'CNA',              4, 'REGULAR', 14.90, 15.10, 64),
@@ -2920,11 +3090,12 @@ INSERT INTO ficha_medica (id_estudiante, grupo_sanguineo, peso_kg, talla_m, aler
 (4,  'B+',  59.00, 1.65, 'Ninguna',    1, '2026-03-03'),
 (5,  'O+',  65.30, 1.68, 'Ninguna',    1, '2026-03-04'),
 (6,  'AB+', 70.00, 1.71, 'Ninguna',    1, '2026-03-04'),
-(7,  'O-',  63.80, 1.66, 'Ninguna',    0, '2026-03-05'),
+(7,  'O-',  63.80, 1.66, 'Ninguna',    0, '2026-03-05'), -- Sin apto médico (para pruebas)
 (8,  'A+',  66.20, 1.69, 'Ninguna',    1, '2026-03-05'),
 (9,  'O+',  52.40, 1.58, 'Ninguna',    1, '2026-03-05'),
 (10, 'O+',  71.90, 1.74, 'Ninguna',    1, '2026-03-06');
 
+-- 5. Periodos, Aulas, Secciones y Horarios
 INSERT INTO periodos_academicos (id_periodo, codigo_periodo, anio, semestre, fecha_inicio, fecha_fin, inicio_matricula, fin_matricula, inicio_rectificacion, fin_rectificacion, estado) VALUES
 (1, '2026-I',  2026, 1, '2026-03-16', '2026-07-17', '2026-03-01 08:00:00', '2026-03-10 23:59:59', '2026-03-11 08:00:00', '2026-03-14 23:59:59', 'CERRADO'),
 (2, '2026-II', 2026, 2, '2026-08-10', '2026-12-11', NOW() - INTERVAL 5 DAY, NOW() + INTERVAL 10 DAY, NOW() - INTERVAL 2 DAY, NOW() + INTERVAL 12 DAY, 'ACTIVO');
@@ -2934,36 +3105,43 @@ INSERT INTO aulas (id_aula, id_facultad, codigo_aula, nombre, tipo, aforo_maximo
 (2, 1, 'LAB-302', 'Laboratorio de Redes y Telecomunicaciones',      'LABORATORIO', 25, '25 PCs, Switches Cisco',         'DISPONIBLE'),
 (3, 1, 'AUL-201', 'Aula Magna Teórica 201 - Pabellón ESIS',         'TEORIA',      45, 'Pizarra interactiva, Proyector', 'DISPONIBLE');
 
+-- Secciones del Período 2 (2026-II)
+-- Sección 2 inicia 30/30 (LLENA para pruebas). Sección 7 tiene UNA sola vacante
+-- (para demostrar lista de espera y promoción con estudiantes reales).
 INSERT INTO secciones (id_seccion, id_periodo, id_curso, id_aula, id_docente, codigo_seccion, turno, vacantes_total, vacantes_ocupadas, vacantes_extra) VALUES
-(1, 2, 10, 1, 4, 'A', 'MANANA', 30, 0,  0),
-(2, 2, 10, 1, 4, 'B', 'TARDE',  30, 30, 0),
-(3, 2, 11, 3, 5, 'A', 'MANANA', 35, 0,  0),
-(4, 2, 11, 3, 5, 'B', 'TARDE',  35, 0,  0),
-(5, 2, 12, 2, 6, 'A', 'MANANA', 25, 0,  0),
-(6, 2, 13, 3, 7, 'A', 'MANANA', 35, 0,  0),
-(7, 2, 10, 1, 4, 'C', 'NOCHE',   1, 0,  0);
+(1, 2, 10, 1, 4, 'A', 'MANANA', 30, 0,  0), -- Base de Datos II (Sección A)
+(2, 2, 10, 1, 4, 'B', 'TARDE',  30, 30, 0), -- Base de Datos II (Sección B - LLENA)
+(3, 2, 11, 3, 5, 'A', 'MANANA', 35, 0,  0), -- Inteligencia Artificial (Sección A)
+(4, 2, 11, 3, 5, 'B', 'TARDE',  35, 0,  0), -- Inteligencia Artificial (Sección B)
+(5, 2, 12, 2, 6, 'A', 'MANANA', 25, 0,  0), -- Redes de Computadoras (Sección A)
+(6, 2, 13, 3, 7, 'A', 'MANANA', 35, 0,  0), -- Análisis y Diseño de Software (Sección A)
+(7, 2, 10, 1, 4, 'C', 'NOCHE',   1, 0,  0); -- Base de Datos II (Sección C - 1 SOLA VACANTE)
 
+-- Secciones del Período 1 (2026-I - Historial); vacantes_ocupadas = alumnos del historial
 INSERT INTO secciones (id_seccion, id_periodo, id_curso, id_aula, id_docente, codigo_seccion, turno, vacantes_total, vacantes_ocupadas, vacantes_extra) VALUES
-(91, 1, 7,  1, 4, 'A', 'MANANA', 30, 7, 0),
-(92, 1, 8,  3, 6, 'A', 'MANANA', 30, 1, 0),
-(93, 1, 11, 3, 5, 'A', 'MANANA', 30, 1, 0),
-(94, 1, 5,  1, 4, 'A', 'MANANA', 30, 6, 0),
-(95, 1, 3,  2, 2, 'A', 'MANANA', 30, 1, 0);
+(91, 1, 7,  1, 4, 'A', 'MANANA', 30, 7, 0), -- BD I (Curso 7): matrículas 101-107
+(92, 1, 8,  3, 6, 'A', 'MANANA', 30, 1, 0), -- POO (Curso 8): matrícula 106
+(93, 1, 11, 3, 5, 'A', 'MANANA', 30, 1, 0), -- IA (Curso 11): matrícula 104
+(94, 1, 5,  1, 4, 'A', 'MANANA', 30, 6, 0), -- Estructuras (Curso 5): 101,103,104,105,106,107
+(95, 1, 3,  2, 2, 'A', 'MANANA', 30, 1, 0); -- Introducción a la Computación (Curso 3): matrícula 101
 
+-- Horarios completos para todas las secciones
+-- Cruce intencional: Sección 1 y Sección 3 coinciden los LUNES de 09:00 a 10:00
 INSERT INTO horarios_seccion (id_seccion, dia_semana, hora_inicio, hora_fin) VALUES
 (1, 'LUNES',     '08:00:00', '10:00:00'),
 (1, 'MIERCOLES', '08:00:00', '10:00:00'),
 (2, 'LUNES',     '14:00:00', '16:00:00'),
 (2, 'MIERCOLES', '14:00:00', '16:00:00'),
-(3, 'LUNES',     '09:00:00', '11:00:00'),
+(3, 'LUNES',     '09:00:00', '11:00:00'),  -- CRUCE con Sección 1
 (3, 'MIERCOLES', '09:00:00', '11:00:00'),
 (4, 'MARTES',    '14:00:00', '16:00:00'),
 (4, 'JUEVES',    '14:00:00', '16:00:00'),
 (5, 'MARTES',    '08:00:00', '10:00:00'),
 (5, 'JUEVES',    '08:00:00', '10:00:00'),
 (6, 'VIERNES',   '08:00:00', '12:00:00'),
-(7, 'SABADO',    '08:00:00', '10:00:00');
+(7, 'SABADO',    '08:00:00', '10:00:00');  -- Sección 7: sin cruces con las demás
 
+-- 6. Finanzas
 INSERT INTO conceptos_pago (id_concepto, codigo_tupa, nombre, monto, tipo, vigente) VALUES
 (1, 'TUPA-MAT-01', 'Derecho de Matrícula Regular 2026-II', 35.00, 'MATRICULA', 1),
 (2, 'TUPA-CAR-02', 'Carné Universitario 2026',              16.00, 'TRAMITE',   1);
@@ -2974,7 +3152,7 @@ INSERT INTO deudas_estudiante (id_deuda, id_estudiante, id_concepto, id_periodo,
 (3, 3, 1, 2, 35.00, 'PAGADO',    CURDATE() + INTERVAL 5 DAY),
 (4, 4, 1, 2, 35.00, 'PAGADO',    CURDATE() + INTERVAL 5 DAY),
 (5, 5, 1, 2, 35.00, 'PAGADO',    CURDATE() + INTERVAL 5 DAY),
-(6, 6, 1, 2, 35.00, 'PENDIENTE', CURDATE() - INTERVAL 2 DAY),
+(6, 6, 1, 2, 35.00, 'PENDIENTE', CURDATE() - INTERVAL 2 DAY), -- Deuda vencida para pruebas
 (7, 7, 1, 2, 35.00, 'PAGADO',    CURDATE() + INTERVAL 5 DAY);
 
 INSERT INTO pagos (id_pago, id_deuda, id_estudiante, id_admin, monto_pagado, metodo_pago, nro_operacion, fecha_pago) VALUES
@@ -2993,33 +3171,55 @@ INSERT INTO comprobantes (id_comprobante, id_pago, serie, correlativo, tipo_comp
 (5, 5, 'B001', 105, 'BOLETA', 35.00, '2026-08-01 10:35:05'),
 (6, 6, 'B001', 106, 'BOLETA', 35.00, '2026-08-01 10:40:05');
 
+-- 7. Historial Académico 2026-I (total_creditos explícito = suma de créditos del detalle)
 INSERT INTO matriculas (id_matricula, id_estudiante, id_periodo, tipo_matricula, estado, total_creditos, creditos_adicionales, fecha_matricula, nro_constancia) VALUES
-(101, 1,  1, 'REGULAR', 'CONFIRMADA', 11, 0, '2026-03-02 08:30:00', 'MAT-2026-I-000001'),
-(102, 3,  1, 'REGULAR', 'CONFIRMADA',  4, 0, '2026-03-02 09:00:00', 'MAT-2026-I-000002'),
-(103, 2,  1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 09:30:00', 'MAT-2026-I-000003'),
-(104, 5,  1, 'REGULAR', 'CONFIRMADA', 12, 0, '2026-03-02 10:00:00', 'MAT-2026-I-000004'),
-(105, 8,  1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 10:30:00', 'MAT-2026-I-000005'),
-(106, 9,  1, 'REGULAR', 'CONFIRMADA', 12, 0, '2026-03-02 11:00:00', 'MAT-2026-I-000006'),
-(107, 10, 1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 11:30:00', 'MAT-2026-I-000007');
+(101, 1,  1, 'REGULAR', 'CONFIRMADA', 11, 0, '2026-03-02 08:30:00', 'MAT-2026-I-000001'), -- 4+4+3
+(102, 3,  1, 'REGULAR', 'CONFIRMADA',  4, 0, '2026-03-02 09:00:00', 'MAT-2026-I-000002'), -- 4
+(103, 2,  1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 09:30:00', 'MAT-2026-I-000003'), -- 4+4
+(104, 5,  1, 'REGULAR', 'CONFIRMADA', 12, 0, '2026-03-02 10:00:00', 'MAT-2026-I-000004'), -- 4+4+4
+(105, 8,  1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 10:30:00', 'MAT-2026-I-000005'), -- 4+4
+(106, 9,  1, 'REGULAR', 'CONFIRMADA', 12, 0, '2026-03-02 11:00:00', 'MAT-2026-I-000006'), -- 4+4+4
+(107, 10, 1, 'REGULAR', 'CONFIRMADA',  8, 0, '2026-03-02 11:30:00', 'MAT-2026-I-000007'); -- 4+4
 
+-- Juan Pérez (Est 1): aprobó BD I (16.50), Estructuras (16.00) e Introducción a la Computación (17.00)
 INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (101, 91, 'INSCRITO', 16.50, 16.00, 17.00, 'PRIMERA_VEZ'),
 (101, 94, 'INSCRITO', 16.00, 16.00, 16.00, 'PRIMERA_VEZ'),
-(101, 95, 'INSCRITO', 17.00, 17.00, 17.00, 'PRIMERA_VEZ'),
-(102, 91, 'INSCRITO', 09.50, 09.00, 10.00, 'PRIMERA_VEZ'),
+(101, 95, 'INSCRITO', 17.00, 17.00, 17.00, 'PRIMERA_VEZ');
+
+-- Carlos Mamani (Est 3): desaprobó BD I (09.50) -> Faltará prerrequisito para BD II
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
+(102, 91, 'INSCRITO', 09.50, 09.00, 10.00, 'PRIMERA_VEZ');
+
+-- Ana Quispe (Est 2): aprobó BD I (15.00) y Estructuras (16.00)
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (103, 91, 'INSCRITO', 15.00, 15.00, 15.00, 'PRIMERA_VEZ'),
-(103, 94, 'INSCRITO', 16.00, 16.00, 16.00, 'PRIMERA_VEZ'),
+(103, 94, 'INSCRITO', 16.00, 16.00, 16.00, 'PRIMERA_VEZ');
+
+-- David Cáceres (Est 5): aprobó BD I (14.00), desaprobó IA (08.50) y aprobó Estructuras (15.00)
+-- Cumple el prerrequisito para llevar IA por SEGUNDA_VEZ demostrable
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (104, 91, 'INSCRITO', 14.00, 14.00, 14.00, 'PRIMERA_VEZ'),
 (104, 93, 'INSCRITO', 08.50, 08.00, 09.00, 'PRIMERA_VEZ'),
-(104, 94, 'INSCRITO', 15.00, 15.00, 15.00, 'PRIMERA_VEZ'),
+(104, 94, 'INSCRITO', 15.00, 15.00, 15.00, 'PRIMERA_VEZ');
+
+-- Joel Ticona (Est 8): aprobó BD I (13.00) y Estructuras (13.50)
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (105, 91, 'INSCRITO', 13.00, 13.00, 13.00, 'PRIMERA_VEZ'),
-(105, 94, 'INSCRITO', 13.50, 13.00, 14.00, 'PRIMERA_VEZ'),
+(105, 94, 'INSCRITO', 13.50, 13.00, 14.00, 'PRIMERA_VEZ');
+
+-- Sofía Bravo (Est 9): aprobó BD I (18.00), POO (19.00) y Estructuras (17.00)
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (106, 91, 'INSCRITO', 18.00, 18.00, 18.00, 'PRIMERA_VEZ'),
 (106, 92, 'INSCRITO', 19.00, 19.00, 19.00, 'PRIMERA_VEZ'),
-(106, 94, 'INSCRITO', 17.00, 17.00, 17.00, 'PRIMERA_VEZ'),
+(106, 94, 'INSCRITO', 17.00, 17.00, 17.00, 'PRIMERA_VEZ');
+
+-- Gabriel Navarro (Est 10): aprobó BD I (12.00) y Estructuras (14.00)
+INSERT INTO detalle_matricula (id_matricula, id_seccion, estado, nota_final, nota_teoria, nota_practica, origen) VALUES
 (107, 91, 'INSCRITO', 12.00, 12.00, 12.00, 'PRIMERA_VEZ'),
 (107, 94, 'INSCRITO', 14.00, 14.00, 14.00, 'PRIMERA_VEZ');
 
+-- 8. Tablas complementarias
 INSERT INTO cola_matricula (id_cola, id_estudiante, id_periodo, posicion, estado_cola, priorizado, hora_ingreso, hora_turno, hora_fin) VALUES
 (1, 1, 2, 1, 'FINALIZADO', 1, NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 110 MINUTE, NOW() - INTERVAL 100 MINUTE),
 (2, 2, 2, 2, 'FINALIZADO', 1, NOW() - INTERVAL 1 HOUR, NOW() - INTERVAL 50 MINUTE,  NOW() - INTERVAL 40 MINUTE),
@@ -3046,3 +3246,43 @@ INSERT INTO auditoria (id_auditoria, id_usuario, modulo, accion, tabla_afectada,
 (2, 1, 'MATRICULA', 'CONFIGURACION_PERIODO', 'periodos_academicos', 2, 'Apertura de período académico 2026-II',               '192.168.1.10', NOW() - INTERVAL 5 DAY);
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- =============================================================================
+-- PARTE 12: CONSULTAS DE VERIFICACIÓN DE CONSISTENCIA
+-- =============================================================================
+
+-- Verificación 1: total_creditos de la matrícula vs suma real (fn_calcular_creditos_matricula)
+SELECT 
+    m.id_matricula,
+    m.nro_constancia,
+    m.total_creditos AS creditos_en_matricula,
+    fn_calcular_creditos_matricula(m.id_matricula) AS creditos_segun_detalle,
+    IF(m.total_creditos = fn_calcular_creditos_matricula(m.id_matricula), 'CONSISTENTE', 'DISCREPANCIA') AS estado_creditos
+FROM matriculas m
+ORDER BY m.id_matricula;
+
+-- Verificación 2: vacantes ocupadas en secciones vs total real en detalle_matricula
+SELECT 
+    s.id_seccion,
+    s.id_periodo, 
+    s.codigo_seccion,
+    c.nombre AS curso,
+    s.vacantes_total,
+    s.vacantes_ocupadas AS ocupadas_en_seccion,
+    COUNT(dm.id_detalle) AS ocupadas_segun_detalle,
+    fn_vacantes_disponibles(s.id_seccion) AS vacantes_disponibles,
+    CASE 
+        WHEN s.id_seccion = 2 AND s.vacantes_ocupadas = s.vacantes_total THEN 'CONSISTENTE (SECCIÓN LLENA DE PRUEBA)'
+        WHEN s.vacantes_ocupadas = COUNT(dm.id_detalle) THEN 'CONSISTENTE'
+        ELSE 'DISCREPANCIA'
+    END AS estado_vacantes
+FROM secciones s
+JOIN cursos c ON c.id_curso = s.id_curso
+LEFT JOIN detalle_matricula dm ON dm.id_seccion = s.id_seccion AND dm.estado = 'INSCRITO'
+GROUP BY s.id_seccion, s.id_periodo, s.codigo_seccion, c.nombre, s.vacantes_total, s.vacantes_ocupadas
+ORDER BY s.id_periodo, s.id_seccion;
+
+-- =============================================================================
+-- FIN DEL SCRIPT COMPLETO v4.0
+-- =============================================================================
