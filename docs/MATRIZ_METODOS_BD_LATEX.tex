@@ -1,0 +1,378 @@
+\documentclass[10pt,a4paper,landscape]{article}
+
+% =============================================================================
+% PAQUETES
+% =============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=1.1cm, top=1.6cm, bottom=1.6cm]{geometry}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+% =============================================================================
+% PALETA DE COLORES INSTITUCIONAL (UNJBG)
+% =============================================================================
+\definecolor{unjbgNavy}{HTML}{0A2540}
+\definecolor{unjbgBlue}{HTML}{1D4ED8}
+\definecolor{unjbgGold}{HTML}{D4AF37}
+\definecolor{rowAlt}{HTML}{F8FAFC}
+\definecolor{badgeProc}{HTML}{DBEAFE}
+\definecolor{badgeFunc}{HTML}{DCFCE7}
+\definecolor{badgeTrig}{HTML}{FEF3C7}
+\definecolor{badgeView}{HTML}{F3E8FF}
+\definecolor{badgeCurs}{HTML}{FFE4E6}
+\definecolor{boxBg}{HTML}{F1F5F9}
+
+% =============================================================================
+% COMANDOS PARA ETIQUETAS DE OBJETOS SQL
+% =============================================================================
+\newcommand{\objProcTx}{\textbf{\textcolor{unjbgNavy}{PROCEDURE (CON TRANSACCIÓN)}}}
+\newcommand{\objProcCrud}{\textbf{\textcolor{unjbgBlue}{PROCEDURE (CRUD / LECTURA)}}}
+\newcommand{\objFunc}{\textbf{\textcolor{teal!80!black}{FUNCIÓN ALMACENADA}}}
+\newcommand{\objTrig}{\textbf{\textcolor{orange!80!black}{TRIGGER (DISPARADOR)}}}
+\newcommand{\objView}{\textbf{\textcolor{violet!85!black}{VISTA (VIEW)}}}
+\newcommand{\objCursor}{\textbf{\textcolor{red!75!black}{PROCEDURE + CURSOR + TX}}}
+
+% =============================================================================
+% ENCABEZADO Y PIE DE PÁGINA
+% =============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{\textcolor{unjbgNavy}{UNJBG - ESIS}} \quad|\quad Sistema Integrado de Gestión Académica y Matrícula (\texttt{bd\_matricula\_universitaria})}
+\fancyhead[R]{\textbf{Especificación Integral de Métodos, Funciones y Objetos SQL (0\% ORM)}}
+\fancyfoot[L]{\footnotesize Curso: Base de Datos II / Ingeniería de Software — Guía Oficial de Proyecto Final}
+\fancyfoot[R]{\footnotesize Página \thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\titleformat{\section}{\large\bfseries\color{unjbgNavy}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{unjbgBlue}}{\thesubsection.}{0.5em}{}
+
+\begin{document}
+
+% =============================================================================
+% TÍTULO PRINCIPAL E INTRODUCCIÓN TÉCNICA
+% =============================================================================
+\begin{center}
+    {\LARGE \textbf{\textcolor{unjbgNavy}{ESPECIFICACIÓN TÉCNICA Y ARQUITECTURA DE OBJETOS DE BASE DE DATOS}}}\\[3pt]
+    {\normalsize \textbf{Sistema de Matrícula Universitaria (UNJBG - ESIS) \quad|\quad Motor: MySQL 8.0+ / MariaDB 10.5+ \quad|\quad Backend: PHP + PDO Nativo (Sin ORM)}}\\[4pt]
+\end{center}
+
+\section{Fundamentación Arquitectónica y Cumplimiento de la Guía de Proyecto Final}
+
+El diseño de la base de datos \texttt{bd\_matricula\_universitaria} ha sido estructurado en \textbf{Tercera Forma Normal (3FN)} sobre el motor transaccional \textbf{InnoDB}, cumpliendo estrictamente con los criterios de calificación exigidos en la guía del curso:
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=1.5cm]
+    \item \textbf{Política de Cero ORM (0\% ORM):} Queda descartado el uso de Eloquent, Doctrine, Hibernate o Prisma. Toda la comunicación entre el backend PHP y MySQL se realiza mediante \textbf{PDO con sentencias preparadas (\texttt{Prepared Statements})} invocando directamente a los objetos programables de la base de datos (\texttt{CALL sp\_*}, \texttt{SELECT fn\_*}, \texttt{SELECT * FROM v\_*}).
+    \item \textbf{Control de Concurrencia y Transacciones ACID:} Las operaciones críticas (Matrícula completa, Aprobación de rectificación, Registro de pagos, Colas de atención, Promoción de listas de espera y Cierre de semestre) emplean transacciones explícitas (\texttt{START TRANSACTION}, \texttt{COMMIT}, \texttt{ROLLBACK}), manejadores de errores (\texttt{DECLARE EXIT HANDLER FOR SQLEXCEPTION}) y bloqueo pesimista de filas (\texttt{SELECT ... FOR UPDATE}) siguiendo un orden canónico de bloqueo (\texttt{matriculas} $\rightarrow$ \texttt{secciones}) para prevenir condiciones de carrera (\textit{race conditions}), sobrecupos y abrazos mortales (\textit{deadlocks}).
+    \item \textbf{Cobertura Total de Objetos SQL:} El sistema integra \textbf{Procedimientos Almacenados} (transaccionales y CRUD), \textbf{Funciones Almacenadas} (reglas de negocio reutilizables), \textbf{Triggers} (auditoría forense inmutable, generación criptográfica SHA-256 para QR y protección de integridad), \textbf{Cursores Explícitos} (procesamiento por lotes de cuotas semestrales y cierre académico) y \textbf{Vistas} (consultas operativas y los 4 reportes oficiales exigidos).
+\end{itemize}
+
+\vspace{3pt}
+
+% Resumen cuantitativo
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{Tablas (DDL 3FN)}} & 
+\textcolor{white}{\textbf{Procedures (\texttt{sp\_*})}} & 
+\textcolor{white}{\textbf{Funciones (\texttt{fn\_*})}} & 
+\textcolor{white}{\textbf{Triggers (\texttt{trg\_*})}} & 
+\textcolor{white}{\textbf{Vistas (\texttt{v\_*})}} & 
+\textcolor{white}{\textbf{Cursores Explícitos}} & 
+\textcolor{white}{\textbf{Interfaces Cubiertas}} \\
+\hline
+\textbf{24 Tablas} + FKs + CHECKs & \textbf{39 Procedimientos} & \textbf{14 Funciones} & \textbf{5 Triggers} & \textbf{13 Vistas} & \textbf{2 Cursores} & \textbf{11 Interfaces (Admin + Alumno)} \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+
+\section{Matriz Detallada de Métodos, Objetos SQL y Explicación Funcional Completa}
+
+En la siguiente matriz se detalla cada funcionalidad requerida por las 11 interfaces del sistema, el tipo de objeto SQL empleado, su identificador técnico en MySQL, los parámetros y tablas que manipula internamente, y una \textbf{columna adicional dedicada a explicar paso a paso qué hace cada función o método, qué retorna y cómo interactúa con el software}.
+
+\renewcommand{\arraystretch}{1.35}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\footnotesize
+\begin{longtable}{|p{0.5cm}|p{3.9cm}|p{3.4cm}|p{3.8cm}|p{5.8cm}|p{7.8cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Qué se va a implementar (Interfaz / Caso de Uso)}} & 
+\textcolor{white}{\textbf{Qué objeto SQL se usa}} & 
+\textcolor{white}{\textbf{Nombre Técnico en MySQL}} & 
+\textcolor{white}{\textbf{Parámetros, Tablas Afectadas y Operación Técnica}} & 
+\textcolor{white}{\textbf{Explicación Detallada de Qué Hace la Función / Método y Qué Retorna}} \\
+\hline
+\endfirsthead
+
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Qué se va a implementar (Interfaz / Caso de Uso)}} & 
+\textcolor{white}{\textbf{Qué objeto SQL se usa}} & 
+\textcolor{white}{\textbf{Nombre Técnico en MySQL}} & 
+\textcolor{white}{\textbf{Parámetros, Tablas Afectadas y Operación Técnica}} & 
+\textcolor{white}{\textbf{Explicación Detallada de Qué Hace la Función / Método y Qué Retorna}} \\
+\hline
+\endhead
+
+\hline
+\multicolumn{6}{r}{\footnotesize\itshape Continúa en la siguiente página...} \\
+\endfoot
+
+\hline
+\endlastfoot
+
+% -----------------------------------------------------------------------------
+% MÓDULO 1 Y 2: LOGIN, SEGURIDAD, ROLES Y AUDITORÍA
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 1 Y 2: LOGIN, SEGURIDAD, ROLES Y AUDITORÍA (Interfaces 1, 2 y 10 — CU-01 a CU-07)}}} \\
+\hline
+
+01 & Validar Login Institucional (Estudiante y Admin) con bloqueo al 3er intento fallido (\texttt{CU-01}) & \objProcTx & \texttt{sp\_validar\_login} & \textbf{IN:} \texttt{p\_identificador}, \texttt{p\_exito\_hash}, \texttt{p\_ip}\newline \textbf{OUT:} \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{roles}, \texttt{estudiantes}, \texttt{auditoria}. & Busca al usuario por \texttt{codigo\_usuario}, \texttt{email\_institucional}, \texttt{dni} o \texttt{codigo\_universitario} bloqueando su fila con \texttt{FOR UPDATE}. Verifica si está \texttt{INACTIVO} o \texttt{BLOQUEADO}. Si la contraseña falla, suma $+1$ a \texttt{intentos\_fallidos} y al llegar a 3 cambia automáticamente \texttt{estado = 'BLOQUEADO'}. Si las credenciales son válidas, reinicia \texttt{intentos\_fallidos = 0}, actualiza \texttt{ultimo\_acceso = NOW()}, registra el ingreso en \texttt{auditoria} y retorna el perfil completo y rol del usuario. \\
+\hline
+\rowcolor{rowAlt}
+02 & Registrar nuevo usuario administrativo, docente o de tesorería (\texttt{CU-04}) & \objProcCrud & \texttt{sp\_registrar\_usuario} & \textbf{IN:} \texttt{p\_codigo}, \texttt{p\_email}, \texttt{p\_hash}, \texttt{p\_nombres}, \texttt{p\_apellidos}, \texttt{p\_dni}, \texttt{p\_id\_rol}, \texttt{p\_id\_admin}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{roles}, \texttt{auditoria}. & Valida que el DNI (8 dígitos), el código institucional y el correo \texttt{@unjbg.edu.pe} no existan previamente en la tabla \texttt{usuarios}, y comprueba que el rol asignado esté activo. Si todo es correcto, inserta la nueva cuenta con estado \texttt{ACTIVO}, registra la creación en la bitácora \texttt{auditoria} indicando qué administrador la creó y devuelve \texttt{EXITO} junto con el \texttt{id\_usuario} generado. \\
+\hline
+03 & Editar datos personales de usuario y asignar o cambiar rol (\texttt{CU-05}) & \objProcCrud & \texttt{sp\_actualizar\_usuario\_rol} & \textbf{IN:} \texttt{p\_id\_usuario}, \texttt{p\_nombres}, \texttt{p\_apellidos}, \texttt{p\_email}, \texttt{p\_id\_rol}, \texttt{p\_id\_admin}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{roles}, \texttt{auditoria}. & Permite al administrador modificar los nombres, apellidos, correo institucional y reasignar el perfil (\texttt{id\_rol}: Administrador, Docente, Estudiante, Tesorería) de un usuario existente. Valida que el nuevo correo no colisione con otro registro y ejecuta el \texttt{UPDATE}, lo cual dispara automáticamente el trigger de auditoría de seguridad. \\
+\hline
+\rowcolor{rowAlt}
+04 & Switch interactivo para Activar, Desactivar o Desbloquear cuenta (\texttt{CU-06}) & \objProcCrud & \texttt{sp\_cambiar\_estado\_usuario} & \textbf{IN:} \texttt{p\_id\_usuario}, \texttt{p\_nuevo\_estado}, \texttt{p\_id\_admin}\newline \textbf{OUT:} \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{auditoria}. & Atiende el interruptor (\textit{toggle switch}) de la tabla del módulo de Seguridad. Cambia el campo \texttt{estado} del usuario a \texttt{ACTIVO}, \texttt{INACTIVO} o \texttt{BLOQUEADO}. Cuando un administrador reactiva o desbloquea una cuenta (\texttt{p\_nuevo\_estado = 'ACTIVO'}), este método reinicia automáticamente \texttt{intentos\_fallidos = 0} para permitirle volver a iniciar sesión de inmediato. \\
+\hline
+05 & Auditoría forense automática ante cambios de rol o estado de cuenta (\texttt{CU-07}) & \objTrig & \texttt{trg\_usuarios\_auditoria\_upd} \newline {\scriptsize(\texttt{AFTER UPDATE ON usuarios})} & \textbf{Evento:} \texttt{AFTER UPDATE}\newline \textbf{Tabla Origen:} \texttt{usuarios}\newline \textbf{Tabla Destino:} \texttt{auditoria}. & Se ejecuta de forma transparente dentro del motor MySQL cada vez que la tabla \texttt{usuarios} sufre un \texttt{UPDATE}. Compara los valores \texttt{OLD.id\_rol} vs \texttt{NEW.id\_rol} y \texttt{OLD.estado} vs \texttt{NEW.estado}. Si detecta que el rol o el estado cambiaron, inserta un registro inmutable en \texttt{auditoria} detallando exactamente qué valor tenía antes y cuál tiene ahora, incluso si el cambio se hizo fuera del backend. \\
+\hline
+\rowcolor{rowAlt}
+06 & Tabla de Usuarios con Rol, Estado, Última Operación y 4 KPIs de Seguridad & \objView & \texttt{v\_usuarios\_seguridad} & \textbf{Tablas consultadas:} \texttt{usuarios}, \texttt{roles}, subconsulta correlacionada a \texttt{auditoria}. & Proporciona una vista consolidada lista para mostrar en la pantalla de Seguridad: devuelve DNI, código, nombre completo, iniciales para el avatar, correo, nombre del rol, estado actual, fecha de último acceso y recupera de \texttt{auditoria} la fecha/hora y descripción de la última operación realizada por ese usuario en el sistema. \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 3: DIRECTORIO DE ESTUDIANTES, KÁRDEX Y RESOLUCIONES
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 3: DIRECTORIO DE ESTUDIANTES, KÁRDEX Y RESOLUCIONES (Interfaz 3 — CU-08 a CU-11, CU-16)}}} \\
+\hline
+
+07 & Función autogeneradora de Código Universitario (\texttt{YYYY-NNNNNN}) (\texttt{CU-08}) & \objFunc & \texttt{fn\_generar\_codigo\_univ} & \textbf{IN:} \texttt{p\_anio\_ingreso YEAR}\newline \textbf{Retorno:} \texttt{VARCHAR(15)}\newline \textbf{Tabla leída:} \texttt{estudiantes}. & \textbf{Qué hace la función:} Busca en la tabla \texttt{estudiantes} el valor máximo del correlativo numérico de los códigos universitarios que comienzan con el año recibido (ej. \texttt{2026-119XXX}). Si no existen alumnos en ese año, inicia la base en \texttt{119001}; si ya existen, le suma $+1$ al máximo encontrado y retorna la cadena formateada \texttt{CONCAT(p\_anio\_ingreso, '-', LPAD(v\_correlativo, 6, '0'))}. \\
+\hline
+\rowcolor{rowAlt}
+08 & Registrar Nuevo Estudiante completo (Usuario + Expediente + Ficha Médica) & \objProcTx & \texttt{sp\_registrar\_estudiante} & \textbf{IN:} Datos personales, \texttt{id\_escuela}, \texttt{id\_plan}, \texttt{anio\_ingreso}, \texttt{modalidad}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{estudiantes}, \texttt{ficha\_medica}, \texttt{auditoria}. & Abre una transacción ACID para dar de alta a un ingresante en 3 pasos atómicos: 1) Invoca \texttt{fn\_generar\_codigo\_univ} para obtener su código oficial; 2) Crea su cuenta de acceso en \texttt{usuarios} con el rol de \texttt{ESTUDIANTE}; 3) Inserta su expediente académico en \texttt{estudiantes} y crea su registro inicial en \texttt{ficha\_medica}. Si cualquiera de los 3 pasos falla, ejecuta \texttt{ROLLBACK} completo. \\
+\hline
+09 & Actualizar datos del Estudiante y aprobar/actualizar Ficha Médica (\texttt{CU-16}) & \objProcTx & \texttt{sp\_actualizar\_estudiante\_ficha} & \textbf{IN:} \texttt{p\_id\_estudiante}, ciclo, grupo sanguíneo, peso, talla, alergias, contacto, \texttt{p\_apto\_medico}\newline \textbf{Tablas:} \texttt{usuarios}, \texttt{estudiantes}, \texttt{ficha\_medica}. & Permite actualizar en una sola transacción los datos de contacto del estudiante y su evaluación de Bienestar Universitario en \texttt{ficha\_medica} (incluyendo el flag \texttt{apto\_medico = 1} y \texttt{fecha\_examen = CURDATE()}), requisito indispensable que luego verifica \texttt{sp\_crear\_matricula\_pendiente} para permitirle matricularse sin necesitar excepción médica. \\
+\hline
+\rowcolor{rowAlt}
+10 & Cambio de Carrera/Plan, Suspensión/Retiro o Egresado con Resolución & \objProcTx & \texttt{sp\_aplicar\_resolucion\_est} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_tipo\_resolucion}, \texttt{p\_numero\_doc}, \texttt{p\_nuevo\_estado}, \texttt{p\_nuevo\_plan}, \texttt{p\_id\_admin}\newline \textbf{Tablas:} \texttt{resoluciones\_estudiante}, \texttt{estudiantes}. & Cubre los 3 botones institucionales del directorio de Estudiantes: \textit{Cambio de Carrera/Plan}, \textit{Grados/Títulos (Egresado)} y \textit{Suspensión/Retiro}. Exige un número de resolución único (\texttt{numero\_doc}), lo inserta en \texttt{resoluciones\_estudiante} y en la misma transacción actualiza en \texttt{estudiantes} su \texttt{estado\_academico} (\texttt{REGULAR}, \texttt{OBSERVADO}, \texttt{EGRESADO}, \texttt{RETIRADO}) o su \texttt{id\_escuela} e \texttt{id\_plan}. \\
+\hline
+11 & Auditoría automática de cambios en estado académico o promedio del alumno & \objTrig & \texttt{trg\_estudiantes\_audit\_upd} \newline {\scriptsize(\texttt{AFTER UPDATE ON estudiantes})} & \textbf{Evento:} \texttt{AFTER UPDATE}\newline \textbf{Tabla Origen:} \texttt{estudiantes}\newline \textbf{Tabla Destino:} \texttt{auditoria}. & Se dispara automáticamente cuando se modifica una fila de \texttt{estudiantes}. Si cambia el \texttt{estado\_academico}, el \texttt{id\_plan}, el \texttt{promedio\_ponderado} (\texttt{PPA}) o los \texttt{creditos\_aprobados}, registra en \texttt{auditoria} una traza con los valores anteriores (\texttt{OLD}) y los nuevos (\texttt{NEW}), garantizando trazabilidad ante fiscalizaciones de SUNEDU. \\
+\hline
+\rowcolor{rowAlt}
+12 & Generar el Kárdex Académico Completo del Alumno y \% de Avance (\texttt{CU-10}) & \objView \newline + \objProcCrud & \texttt{v\_kardex\_estudiante} \newline \texttt{sp\_obtener\_kardex\_estudiante} & \textbf{IN:} \texttt{p\_id\_estudiante}\newline \textbf{Tablas:} \texttt{estudiantes}, \texttt{planes\_estudio}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{cursos}, \texttt{malla\_curricular}. & Genera la Historia Académica Oficial (Kárdex) que se abre en el panel lateral de la interfaz: devuelve en un primer conjunto de resultados el resumen del alumno (\texttt{PPA}, \texttt{PPS}, créditos aprobados vs \texttt{creditos\_totales} del plan y porcentaje de avance de carrera), y en un segundo conjunto el listado cronológico por semestre de todas las asignaturas cursadas, ciclo, créditos, notas (\texttt{teoría}, \texttt{práctica}, \texttt{final}), número de vez (\texttt{PRIMERA\_VEZ}, \texttt{SEGUNDA\_VEZ}, \texttt{TERCERA\_VEZ}) y condición (\texttt{APROBADO} si nota $\ge 10.50$, \texttt{DESAPROBADO}, \texttt{RETIRADO} o \texttt{CONVALIDADO}). \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 4: GESTIÓN ACADÉMICA Y CONTROL CURRICULAR
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 4: GESTIÓN ACADÉMICA, PLANES, MALLA Y PERIODOS (Interfaz 4 — CU-12 a CU-15, CU-18)}}} \\
+\hline
+
+13 & CRUD de Facultades y Escuelas Profesionales (\texttt{CU-12}) & \objProcCrud & \texttt{sp\_guardar\_facultad} \newline \texttt{sp\_guardar\_escuela} & \textbf{IN:} IDs opcionales (NULL = crear, $>0$ = editar), códigos, nombres, decano/director, duración, estado\newline \textbf{Tablas:} \texttt{facultades}, \texttt{escuelas\_profesionales}. & Implementa el alta y edición de la pestaña \textit{Facultades y Carreras}. Si el parámetro ID llega en \texttt{NULL} o \texttt{0}, valida que el código no exista e inserta una nueva facultad o escuela profesional; si recibe un ID existente, actualiza su denominación, nombre del Decano o Director de Escuela y estado de vigencia, registrando el cambio en \texttt{auditoria}. \\
+\hline
+\rowcolor{rowAlt}
+14 & CRUD de Planes de Estudio (\texttt{CU-13}) & \objProcCrud & \texttt{sp\_guardar\_plan\_estudio} & \textbf{IN:} \texttt{p\_id\_plan}, \texttt{p\_id\_escuela}, \texttt{p\_codigo\_plan}, \texttt{p\_nombre\_plan}, \texttt{p\_anio\_vigencia}, \texttt{p\_creditos\_totales}, \texttt{p\_estado}\newline \textbf{Tabla:} \texttt{planes\_estudio}. & Permite registrar un nuevo Plan de Estudios (ej. \textit{Plan de Estudios 2026}) o editar uno existente en la pestaña \textit{Planes de Estudio}. Valida la restricción única \texttt{(id\_escuela, codigo\_plan)}, define el total de créditos exigidos para egresar (ej. 220 créditos) y controla su ciclo de vida entre \texttt{VIGENTE}, \texttt{NO\_VIGENTE} y \texttt{EXTINTO}. \\
+\hline
+15 & Registrar/Editar Curso, ubicarlo en Ciclo de Malla y asignar Prerrequisitos (\texttt{CU-14}) & \objProcTx & \texttt{sp\_guardar\_curso\_malla} & \textbf{IN:} Datos del curso, \texttt{p\_id\_plan}, \texttt{p\_ciclo}, \texttt{p\_id\_curso\_req}\newline \textbf{Tablas:} \texttt{cursos}, \texttt{malla\_curricular}, \texttt{prerrequisitos}. & En una transacción atómica crea o actualiza la asignatura en \texttt{cursos} (créditos, horas de teoría, horas de práctica, tipo \texttt{OBLIGATORIO}/\texttt{ELECTIVO}), la asigna al ciclo correspondiente (I al X) en \texttt{malla\_curricular} y registra su prerrequisito en \texttt{prerrequisitos}, verificando antes que el curso requisito pertenezca a un ciclo estrictamente menor para impedir dependencias circulares. \\
+\hline
+\rowcolor{rowAlt}
+16 & CRUD de Periodos Académicos y Ventanas de Matrícula/Rectificación (\texttt{CU-15}) & \objProcCrud & \texttt{sp\_guardar\_periodo\_academico} & \textbf{IN:} \texttt{p\_id\_periodo}, \texttt{p\_codigo\_periodo}, \texttt{p\_anio}, \texttt{p\_semestre}, fechas de semestre, matrícula y rectificación, \texttt{p\_estado}\newline \textbf{Tabla:} \texttt{periodos\_academicos}. & Configura el calendario oficial del semestre (\texttt{2026-I}, \texttt{2026-II}). Valida que \texttt{fecha\_fin > fecha\_inicio}, que las ventanas \texttt{inicio\_matricula}/\texttt{fin\_matricula} e \texttt{inicio\_rectificacion}/\texttt{fin\_rectificacion} sean coherentes, y asegura que solo exista un período en estado \texttt{ACTIVO} a la vez cuando se activa un semestre. \\
+\hline
+17 & Trigger de protección contra eliminación de Periodos Activos o Cerrados & \objTrig & \texttt{trg\_periodos\_proteger\_del} \newline {\scriptsize(\texttt{BEFORE DELETE ON periodos\_academicos})} & \textbf{Evento:} \texttt{BEFORE DELETE}\newline \textbf{Tabla Protegida:} \texttt{periodos\_academicos}. & Protege la integridad histórica de la universidad: antes de que se ejecute cualquier \texttt{DELETE} sobre \texttt{periodos\_academicos}, verifica si \texttt{OLD.estado IN ('ACTIVO', 'CERRADO')}. Si es así, aborta la operación lanzando \texttt{SIGNAL SQLSTATE '45000'} con un mensaje explicativo. Solo permite borrar períodos en estado \texttt{PROGRAMADO} que aún no tengan movimiento. \\
+\hline
+\rowcolor{rowAlt}
+18 & Vista de Malla Curricular por Columnas (Ciclo I al X) con Prerrequisitos & \objView & \texttt{v\_malla\_curricular\_detalle} & \textbf{Tablas:} \texttt{malla\_curricular}, \texttt{planes\_estudio}, \texttt{escuelas\_profesionales}, \texttt{cursos}, \texttt{prerrequisitos}. & Alimenta el tablero horizontal de columnas por ciclo de la pestaña \textit{Malla Curricular y Cursos}: devuelve cada curso con su plan, escuela, número de ciclo, créditos, suma de horas (\texttt{horas\_teoria + horas\_practica}), tipo y utiliza \texttt{GROUP\_CONCAT} para listar en una sola columna los códigos y nombres de todos sus prerrequisitos (o \texttt{'Sin Req.'} si es de primer nivel). \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 5: HORARIOS, AULAS Y SECCIONES
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 5: HORARIOS, AULAS FÍSICAS Y DETECCIÓN DE CRUCES DE INFRAESTRUCTURA (Interfaz 6 — CU-32 a CU-38)}}} \\
+\hline
+
+19 & Función Detectora de Cruce de Aula Física (\texttt{CU-33} / \texttt{RN-07}) & \objFunc & \texttt{fn\_detectar\_cruce\_aula} & \textbf{IN:} \texttt{p\_id\_periodo}, \texttt{p\_id\_aula}, \texttt{p\_dia\_semana}, \texttt{p\_hora\_ini}, \texttt{p\_hora\_fin}, \texttt{p\_id\_seccion\_ignorar}\newline \textbf{Retorno:} \texttt{TINYINT(1)}. & \textbf{Qué hace la función:} Verifica la disponibilidad física de un ambiente o laboratorio antes de programar una clase. Cruza \texttt{secciones} y \texttt{horarios\_seccion} filtrando por el mismo período académico, la misma \texttt{id\_aula} y el mismo \texttt{dia\_semana} (excluyendo la propia sección si se está editando). Evalúa la desigualdad de intervalos \texttt{(p\_hora\_ini < h.hora\_fin AND p\_hora\_fin > h.hora\_inicio)}: retorna \texttt{1} si el aula ya está ocupada en esa franja y \texttt{0} si está libre. \\
+\hline
+\rowcolor{rowAlt}
+20 & Función Detectora de Cruce de Horario del Docente (\texttt{CU-33}) & \objFunc & \texttt{fn\_detectar\_cruce\_docente} & \textbf{IN:} \texttt{p\_id\_periodo}, \texttt{p\_id\_docente}, \texttt{p\_dia\_semana}, \texttt{p\_hora\_ini}, \texttt{p\_hora\_fin}, \texttt{p\_id\_seccion\_ignorar}\newline \textbf{Retorno:} \texttt{TINYINT(1)}. & \textbf{Qué hace la función:} Impide que un mismo profesor sea programado simultáneamente en dos secciones o aulas distintas. Busca en todas las secciones del período activo asignadas a \texttt{p\_id\_docente} en ese mismo \texttt{dia\_semana} y verifica si existe traslape horario \texttt{(p\_hora\_ini < h.hora\_fin AND p\_hora\_fin > h.hora\_inicio)}. Retorna \texttt{1} si el docente tiene conflicto horario y \texttt{0} si puede dictar la clase. \\
+\hline
+21 & CRUD de Aulas Físicas y Laboratorios Especializados (\texttt{CU-32}) & \objProcCrud & \texttt{sp\_guardar\_aula} & \textbf{IN:} \texttt{p\_id\_aula}, \texttt{p\_id\_facultad}, \texttt{p\_codigo\_aula}, \texttt{p\_nombre}, \texttt{p\_tipo}, \texttt{p\_aforo\_maximo}, \texttt{p\_equipamiento}, \texttt{p\_estado}\newline \textbf{Tabla:} \texttt{aulas}. & Cubre la Pestaña 3 del módulo de Horarios (\textit{Registro y Gestión de Aulas y Laboratorios}). Permite dar de alta o editar ambientes físicos indicando su facultad, tipo (\texttt{TEORIA}, \texttt{LABORATORIO}, \texttt{VIRTUAL}), \texttt{aforo\_maximo} normado por SUNEDU, equipamiento multimedia y estado operativo (\texttt{DISPONIBLE}, \texttt{MANTENIMIENTO}, \texttt{CLAUSURADO}). \\
+\hline
+\rowcolor{rowAlt}
+22 & Crear/Editar Sección y Programar Bloque Horario Semanal sin Cruces & \objProcTx & \texttt{sp\_guardar\_seccion\_horario} & \textbf{IN:} Datos de sección (\texttt{id\_periodo}, \texttt{id\_curso}, \texttt{id\_aula}, \texttt{id\_docente}, \texttt{vacantes}) + Bloque (\texttt{dia\_semana}, \texttt{hora\_inicio}, \texttt{hora\_fin})\newline \textbf{Tablas:} \texttt{secciones}, \texttt{horarios\_seccion}, \texttt{aulas}. & Atiende el modal interactivo que se abre al hacer clic en cualquier celda de la Grilla Horaria Semanal. En una transacción: 1) Verifica que el aula esté \texttt{DISPONIBLE} y que \texttt{vacantes\_total <= aforo\_maximo}; 2) Llama a \texttt{fn\_detectar\_cruce\_aula} (si da 1, hace \texttt{ROLLBACK} con código \texttt{CRUCE\_AULA}); 3) Llama a \texttt{fn\_detectar\_cruce\_docente} (si da 1, hace \texttt{ROLLBACK} con código \texttt{CRUCE\_DOCENTE}); 4) Si todo es válido, guarda la sección y su bloque en \texttt{horarios\_seccion}. \\
+\hline
+23 & Vista de Matriz Horaria Semanal (por Ciclo/Sección y por Ambiente/Aula) & \objView & \texttt{v\_horarios\_secciones} & \textbf{Tablas:} \texttt{horarios\_seccion}, \texttt{secciones}, \texttt{periodos\_academicos}, \texttt{cursos}, \texttt{malla\_curricular}, \texttt{aulas}, \texttt{usuarios}. & Devuelve todos los bloques horarios enriquecidos con el ciclo de la malla, código y nombre del curso, sección, turno, código/nombre/tipo/aforo del aula, nombre del docente y vacantes. Permite pintar tanto la Pestaña 1 (\textit{Horarios por Ciclo}) como la Pestaña 2 (\textit{Matriz de Ocupación por Ambiente/Aula}). \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 6: MOTOR DE MATRÍCULA, COLA VIRTUAL Y VACANTES
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 6: FUNCIONES DE REGLAMENTO, COLA EN VIVO, VACANTES Y MATRÍCULA TRANSACCIONAL (Interfaces 5 y 11)}}} \\
+\hline
+
+\rowcolor{rowAlt}
+24 & Funciones de Parámetros del Reglamento Académico UNJBG & \objFunc & \texttt{fn\_nota\_minima} \newline \texttt{fn\_limite\_creditos\_base} \newline \texttt{fn\_promedio\_merito} & \textbf{IN:} Ninguno (\texttt{DETERMINISTIC NO SQL})\newline \textbf{Retornos:} \texttt{10.50}, \texttt{22} y \texttt{14.00}. & \textbf{Qué hacen las 3 funciones:} Centralizan en un único punto del motor de base de datos las constantes normativas de la UNJBG: \texttt{fn\_nota\_minima()} retorna \texttt{10.50} como nota mínima aprobatoria; \texttt{fn\_limite\_creditos\_base()} retorna \texttt{22} créditos como carga máxima regular; y \texttt{fn\_promedio\_merito()} retorna \texttt{14.00} como promedio mínimo de tercio superior para otorgar prioridad en cola y créditos adicionales. \\
+\hline
+25 & Función Validadora de Pertenencia del Curso al Plan del Estudiante & \objFunc & \texttt{fn\_validar\_curso\_en\_plan} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_id\_curso}\newline \textbf{Retorno:} \texttt{TINYINT(1)}\newline \textbf{Tablas:} \texttt{estudiantes}, \texttt{malla\_curricular}. & \textbf{Qué hace la función:} Obtiene el \texttt{id\_plan} vigente asignado al estudiante en la tabla \texttt{estudiantes} y comprueba si el \texttt{p\_id\_curso} solicitado existe dentro de \texttt{malla\_curricular} para ese plan de estudios. Retorna \texttt{1} si el curso pertenece a su malla curricular y \texttt{0} si pertenece a otra carrera o a un plan distinto, evitando matrículas en cursos ajenos. \\
+\hline
+\rowcolor{rowAlt}
+26 & Función Validadora de Cumplimiento de Prerrequisitos Académicos & \objFunc & \texttt{fn\_validar\_prerrequisitos} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_id\_curso}\newline \textbf{Retorno:} \texttt{TINYINT(1)}\newline \textbf{Tablas:} \texttt{prerrequisitos}, \texttt{detalle\_matricula}, \texttt{matriculas}, \texttt{periodos\_academicos}. & \textbf{Qué hace la función:} Cuenta cuántos prerrequisitos exige \texttt{p\_id\_curso} en la tabla \texttt{prerrequisitos} (si es 0, retorna \texttt{1} directamente). Si tiene requisitos, verifica en el historial del alumno cuántos de esos cursos requeridos tienen estado \texttt{CONVALIDADO} o fueron cursados con \texttt{estado = 'INSCRITO'} y \texttt{nota\_final >= fn\_nota\_minima()} (10.50) en un período académico que ya esté \texttt{CERRADO} (excluyendo matrículas anuladas). Retorna \texttt{1} solo si aprobó el 100\% de los prerrequisitos. \\
+\hline
+27 & Función Detectora de Cruce de Horario del Estudiante (\texttt{CU-27}) & \objFunc & \texttt{fn\_detectar\_cruce\_horario} & \textbf{IN:} \texttt{p\_id\_matricula}, \texttt{p\_id\_seccion}\newline \textbf{Retorno:} \texttt{TINYINT(1)}\newline \textbf{Tablas:} \texttt{horarios\_seccion}, \texttt{detalle\_matricula}. & \textbf{Qué hace la función:} Alimenta el \textit{Semáforo de Cruces} del Portal Estudiante y de Rectificación. Compara todos los bloques horarios (\texttt{dia\_semana}, \texttt{hora\_inicio}, \texttt{hora\_fin}) de la nueva sección \texttt{p\_id\_seccion} contra los bloques de todas las secciones que el alumno ya tiene en estado \texttt{INSCRITO} dentro de su matrícula \texttt{p\_id\_matricula}. Si algún bloque coincide en el mismo día y cumple \texttt{h\_nueva.hora\_inicio < h\_existente.hora\_fin AND h\_nueva.hora\_fin > h\_existente.hora\_inicio}, retorna \texttt{1} (hay cruce); de lo contrario retorna \texttt{0}. \\
+\hline
+\rowcolor{rowAlt}
+28 & Función de Cálculo de Vacantes Disponibles en Tiempo Real & \objFunc & \texttt{fn\_vacantes\_disponibles} & \textbf{IN:} \texttt{p\_id\_seccion}\newline \textbf{Retorno:} \texttt{INT}\newline \textbf{Tabla:} \texttt{secciones}. & \textbf{Qué hace la función:} Consulta en \texttt{secciones} la capacidad total sumando las vacantes ordinarias más las extraordinarias y restando las ocupadas: \texttt{(vacantes\_total + vacantes\_extra) - vacantes\_ocupadas}. Si la sección no existe retorna \texttt{NULL}; si existe, retorna \texttt{GREATEST(v\_disponibles, 0)} para informar exactamente cuántos cupos libres quedan. \\
+\hline
+29 & Funciones de Auditoría y Control del Límite de Créditos y Créditos Extra & \objFunc & \texttt{fn\_calcular\_creditos\_matricula} \newline \texttt{fn\_validar\_limite\_creditos} \newline \texttt{fn\_creditos\_adicionales} & \textbf{IN:} \texttt{p\_id\_matricula}, \texttt{p\_creditos\_nuevos}, \texttt{p\_id\_estudiante}, \texttt{p\_id\_periodo}\newline \textbf{Tablas:} \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{cursos}, \texttt{estudiantes}, \texttt{resoluciones\_estudiante}. & \textbf{Qué hacen las 3 funciones:} 1) \texttt{fn\_calcular\_creditos\_matricula} suma los créditos reales de todos los cursos \texttt{INSCRITO}s en \texttt{detalle\_matricula} para auditar la cabecera; 2) \texttt{fn\_creditos\_adicionales} devuelve \texttt{4} créditos extra si el alumno tiene \texttt{promedio\_semestre\_anterior >= 14.00} o una resolución \texttt{AMPLIACION\_CREDITOS} vigente en el año del período (o \texttt{0} en caso contrario); 3) \texttt{fn\_validar\_limite\_creditos} retorna \texttt{1} si \texttt{total\_creditos + p\_creditos\_nuevos <= 22 + creditos\_adicionales}, y \texttt{0} si excede el tope permitido. \\
+\hline
+\rowcolor{rowAlt}
+30 & Cola Virtual de Turnos de Matrícula en Vivo (Cola 1 — \texttt{TX-04}) & \objProcTx \newline + \objView & \texttt{sp\_ingresar\_cola\_matricula} \newline \texttt{sp\_atender\_siguiente\_cola} \newline \texttt{sp\_finalizar\_turno\_cola} \newline \texttt{sp\_abandonar\_cola} \newline \texttt{sp\_expirar\_turnos\_cola} \newline \texttt{sp\_consultar\_posicion\_cola} \newline \texttt{v\_cola\_matricula} & \textbf{Tablas:} \texttt{cola\_matricula}, \texttt{periodos\_academicos}, \texttt{estudiantes}, \texttt{auditoria}. & Gestiona el control de concurrencia de turnos: al ingresar a la cola calcula la siguiente \texttt{posicion} con bloqueo \texttt{FOR UPDATE} y marca automáticamente \texttt{priorizado = 1} si el alumno tiene promedio de mérito ($\ge 14.00$). \texttt{sp\_atender\_siguiente\_cola} otorga el estado \texttt{EN\_TURNO} al primero en espera ordenando por \texttt{priorizado DESC, posicion ASC}. Incluye finalización, abandono voluntario, expiración automática por timeout y consulta de tiempo de espera en \texttt{v\_cola\_matricula}. \\
+\hline
+31 & Botón ``Priorizar Turno'' en Vivo desde el Centro de Control Admin (\texttt{CU-40}) & \objProcTx & \texttt{sp\_priorizar\_turno\_cola} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_id\_periodo}, \texttt{p\_id\_admin}\newline \textbf{OUT:} \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}\newline \textbf{Tablas:} \texttt{cola\_matricula}, \texttt{auditoria}. & Implementa la acción del botón \textit{``⚡ Priorizar Turno''} en la tabla de monitoreo de cola del Administrador. Bloquea el registro del estudiante en \texttt{cola\_matricula} (\texttt{FOR UPDATE}), verifica que se encuentre en estado \texttt{EN\_ESPERA}, cambia su flag \texttt{priorizado = 1} para que pase a la cabeza de atención inmediata y registra la autorización administrativa en \texttt{auditoria}. \\
+\hline
+\rowcolor{rowAlt}
+32 & Motor de Matrícula Completa Transaccional (Todo o Nada — \texttt{TX-01}) & \objProcTx & \texttt{sp\_registrar\_matricula\_completa} \newline {\scriptsize(invoca \texttt{sp\_crear\_matricula\_pendiente}, \texttt{sp\_i\_inscribir\_curso}, \texttt{sp\_confirmar\_matricula})} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_id\_periodo}, \texttt{p\_id\_admin}, \texttt{p\_numero\_rd}, \texttt{p\_lista\_secciones}\newline \textbf{OUT:} \texttt{p\_id\_matricula}, \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}. & Es el núcleo transaccional del sistema: 1) Si no actúa un admin, exige que el alumno esté \texttt{EN\_TURNO} en la cola; 2) Valida que no tenga deudas vencidas en \texttt{deudas\_estudiante} ni le falte \texttt{apto\_medico} en \texttt{ficha\_medica} (salvo que un admin envíe resolución \texttt{p\_numero\_rd}); 3) Parsea la lista de secciones y las procesa en \textbf{orden ascendente de \texttt{id\_seccion}} bloqueando con \texttt{FOR UPDATE} para evitar deadlocks; 4) Por cada sección valida vacantes, plan, prerrequisitos, cruce horario y límite de créditos, calculando si la lleva por \texttt{PRIMERA\_VEZ}, \texttt{SEGUNDA\_VEZ} o \texttt{TERCERA\_VEZ}; 5) Confirma la matrícula, emite el \texttt{nro\_constancia}, cierra su turno en la cola y audita. Si un solo curso falla, hace \texttt{ROLLBACK} de toda la matrícula. \\
+\hline
+33 & Inscribir/Retirar Curso individual, Anular Matrícula y Aplicar Excepción & \objProcTx & \texttt{sp\_inscribir\_curso\_matricula} \newline \texttt{sp\_retirar\_curso} \newline \texttt{sp\_anular\_matricula} \newline \texttt{sp\_aplicar\_excepcion} & \textbf{Tablas:} \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{excepciones\_matricula}, \texttt{lista\_espera\_seccion}, \texttt{auditoria}. & Permite operar sobre una matrícula existente: agregar una asignatura adicional, retirar un curso (lo cual descuenta créditos, libera 1 vacante en \texttt{secciones} y llama de inmediato a \texttt{sp\_i\_espera\_promover} en la misma transacción), anular toda la matrícula liberando todas sus vacantes, o registrar en \texttt{excepciones\_matricula} una Resolución Decanal (\texttt{CREDITOS\_EXTRAS}, \texttt{CRUCE\_HORARIO}, \texttt{REQUISITO\_MEDICO}, \texttt{DEUDA\_PENDIENTE}). \\
+\hline
+\rowcolor{rowAlt}
+34 & Gestionar y Ampliar Vacantes Extraordinarias / Liberar Cupo (\texttt{CU-43}) & \objProcTx & \texttt{sp\_actualizar\_vacantes\_seccion} & \textbf{IN:} \texttt{p\_id\_seccion}, \texttt{p\_nuevas\_vac\_extra}, \texttt{p\_id\_admin}\newline \textbf{OUT:} \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}\newline \textbf{Tablas:} \texttt{secciones}, \texttt{aulas}, \texttt{lista\_espera\_seccion}. & Respalda el modal \textit{``✏️ Gestionar Vacantes / Habilitar Cupos Extraordinarios''} de Matrícula Admin y el botón \textit{``Liberar Cupo''} de Rectificación. Bloquea la sección con \texttt{FOR UPDATE}, valida que \texttt{vacantes\_total + p\_nuevas\_vac\_extra} no viole las restricciones ni sea menor a \texttt{vacantes\_ocupadas}, actualiza el cupo extraordinario, audita el cambio y \textbf{ejecuta automáticamente \texttt{sp\_i\_espera\_promover(p\_id\_seccion)}} para que los alumnos en lista de espera ocupen al instante las nuevas vacantes habilitadas. \\
+\hline
+35 & Cola de Lista de Espera por Sección Llena (Cola 2 — \texttt{TX-06}) & \objProcTx \newline + \objView & \texttt{sp\_espera\_inscribir} \newline \texttt{sp\_espera\_cancelar} \newline \texttt{sp\_espera\_promover} \newline \texttt{sp\_espera\_consultar} \newline \texttt{v\_lista\_espera} & \textbf{Tablas:} \texttt{lista\_espera\_seccion}, \texttt{secciones}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{auditoria}. & Cuando una sección llega a 0 vacantes, \texttt{sp\_espera\_inscribir} verifica primero que el alumno cumpla el plan y los prerrequisitos del curso y lo anota en orden FIFO dentro de \texttt{lista\_espera\_seccion}. Apenas otro alumno se retira o el admin amplía vacantes, \texttt{sp\_i\_espera\_promover} toma al primero \texttt{EN\_ESPERA}, intenta inscribirlo con \texttt{sp\_i\_inscribir\_curso} y cambia su estado a \texttt{ASIGNADO} (o \texttt{EXPIRADO} si ya excedió créditos o tiene cruce). \\
+\hline
+\rowcolor{rowAlt}
+36 & Catálogo de Oferta Disponible Personalizada para el Portal Estudiante & \objProcCrud & \texttt{sp\_listar\_oferta\_estudiante} \newline \texttt{sp\_consultar\_matricula} \newline \texttt{sp\_consultar\_vacantes} & \textbf{IN:} \texttt{p\_id\_estudiante}, \texttt{p\_id\_periodo}\newline \textbf{Tablas:} \texttt{secciones}, \texttt{cursos}, \texttt{malla\_curricular}, \texttt{horarios\_seccion}, \texttt{aulas}, \texttt{usuarios}. & Alimenta las tarjetas de \textit{Oferta de Asignaturas Disponibles} del Portal Estudiante y de Rectificación: lista todas las secciones ofertadas en el semestre para el plan de estudios del alumno que aún no haya aprobado, invocando en la misma consulta a \texttt{fn\_vacantes\_disponibles}, \texttt{fn\_validar\_prerrequisitos} y concatenando el horario y aula para que la interfaz pinte en verde (\textit{Disponible}), rojo (\textit{0 Vacantes / Agotado}) o ámbar (\textit{Falta requisito / Cruce}). \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 7: PAGOS, TESORERÍA Y CAJA
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 7: GESTIÓN DE PAGOS, TESORERÍA, CUOTAS CON CURSOR Y BOLETAS QR (Interfaz 7 — CU-43 a CU-48)}}} \\
+\hline
+
+37 & Función Calculadora del Saldo Pendiente de una Deuda & \objFunc & \texttt{fn\_calcular\_saldo\_deuda} & \textbf{IN:} \texttt{p\_id\_deuda INT UNSIGNED}\newline \textbf{Retorno:} \texttt{DECIMAL(8,2)}\newline \textbf{Tablas:} \texttt{deudas\_estudiante}, \texttt{pagos}. & \textbf{Qué hace la función:} Obtiene el importe original de la obligación en \texttt{deudas\_estudiante.monto} y le resta la sumatoria de todos los abonos registrados para esa deuda en la tabla \texttt{pagos} (\texttt{COALESCE(SUM(monto\_pagado), 0.00)}). Retorna \texttt{GREATEST(v\_monto\_deuda - v\_total\_pagos, 0.00)}, permitiendo saber con exactitud matemática cuánto resta pagar en deudas pendientes o fraccionadas. \\
+\hline
+\rowcolor{rowAlt}
+38 & CRUD del Catálogo Oficial de Tasas y Aranceles TUPA (\texttt{CU-43}) & \objProcCrud & \texttt{sp\_guardar\_concepto\_pago} & \textbf{IN:} \texttt{p\_id\_concepto}, \texttt{p\_codigo\_tupa}, \texttt{p\_nombre}, \texttt{p\_monto}, \texttt{p\_tipo}, \texttt{p\_vigente}\newline \textbf{Tabla:} \texttt{conceptos\_pago}. & Cubre la Pestaña 2 de Tesorería (\textit{Catálogo Oficial de Tasas y Aranceles TUPA}) y el botón \textit{``+ Nuevo Concepto''}. Permite crear o actualizar tasas institucionales (\texttt{MATRICULA}, \texttt{TRAMITE}, \texttt{PENALIDAD}, \texttt{CONSTANCIA}) con su código TUPA oficial y monto en soles. \\
+\hline
+39 & Generar Cuotas/Deudas Masivas de Matrícula por Semestre con Cursor (\texttt{CU-44}) & \objCursor & \texttt{sp\_generar\_cuotas\_periodo} & \textbf{IN:} \texttt{p\_id\_periodo}, \texttt{p\_id\_concepto}, \texttt{p\_fecha\_vencimiento}, \texttt{p\_id\_admin}\newline \textbf{OUT:} \texttt{p\_total\_generadas}, \texttt{p\_codigo\_resp}, \texttt{p\_mensaje}. & Implementa el botón \textit{``+ Generar Cuotas de Matrícula (CU-44)''} usando un \textbf{\texttt{CURSOR} explícito (\texttt{DECLARE cur\_estudiantes CURSOR FOR ...})} con su \texttt{CONTINUE HANDLER FOR NOT FOUND}. Dentro de una transacción, el cursor recorre uno por uno a todos los estudiantes en estado \texttt{REGULAR} o \texttt{OBSERVADO}, verifica que aún no tengan emitida esa tasa en el período y les inserta su cuenta por cobrar en \texttt{deudas\_estudiante}, devolviendo el total de cuotas generadas. \\
+\hline
+\rowcolor{rowAlt}
+40 & Registrar Pago (Ventanilla, Banco o Caja Virtual) y Emitir Boleta (\texttt{TX-03}) & \objProcTx & \texttt{sp\_registrar\_pago} & \textbf{IN:} \texttt{p\_id\_deuda}, \texttt{p\_id\_admin}, \texttt{p\_monto}, \texttt{p\_metodo}, \texttt{p\_nro\_operacion}\newline \textbf{Tablas:} \texttt{deudas\_estudiante}, \texttt{pagos}, \texttt{comprobantes}, \texttt{auditoria}. & Bloquea la fila de \texttt{deudas\_estudiante} con \texttt{FOR UPDATE}, valida que el \texttt{nro\_operacion} sea único y que \texttt{p\_monto <= fn\_calcular\_saldo\_deuda(p\_id\_deuda)}. Inserta el abono en \texttt{pagos}, recalcula el nuevo saldo con la función y cambia el estado de la deuda a \texttt{PAGADO} (si saldo $= 0$) o \texttt{FRACCIONADO} (si saldo $> 0$). Finalmente calcula el siguiente correlativo con \texttt{FOR UPDATE} e inserta la boleta electrónica \texttt{B001-XXXXXX} en \texttt{comprobantes}. \\
+\hline
+41 & Trigger Generador del Hash Criptográfico QR SHA-256 en Comprobantes (\texttt{CU-47}) & \objTrig & \texttt{trg\_comprobantes\_hash\_qr} \newline {\scriptsize(\texttt{BEFORE INSERT ON comprobantes})} & \textbf{Evento:} \texttt{BEFORE INSERT}\newline \textbf{Tabla:} \texttt{comprobantes}. & Se dispara automáticamente antes de insertar cualquier boleta o recibo en la tabla \texttt{comprobantes}. Si \texttt{NEW.hash\_qr} viene nulo o vacío, construye una firma digital única concatenando \texttt{'UNJBG-SUNEDU|'}, la serie, el correlativo formateado a 6 dígitos, el \texttt{id\_pago}, el \texttt{monto\_total} y la fecha de emisión, aplica la función criptográfica \texttt{SHA2(..., 256)} y la guarda en \texttt{NEW.hash\_qr} para el código QR del comprobante. \\
+\hline
+\rowcolor{rowAlt}
+42 & Vistas de Seguimiento de Pagos de Estudiantes y Liquidación de Caja Diaria & \objView & \texttt{v\_seguimiento\_pagos} \newline \texttt{v\_liquidacion\_caja} & \textbf{Tablas:} \texttt{deudas\_estudiante}, \texttt{conceptos\_pago}, \texttt{estudiantes}, \texttt{usuarios}, \texttt{escuelas\_profesionales}, \texttt{pagos}, \texttt{comprobantes}. & \texttt{v\_seguimiento\_pagos} alimenta la tabla principal de Tesorería y el estado financiero del Portal Estudiante (mostrando deuda, saldo calculado con \texttt{fn\_calcular\_saldo\_deuda}, estado visual \texttt{PAGADO}/\texttt{PENDIENTE}/\texttt{VENCIDO}, método, número de operación, boleta \texttt{B001-XXXXXX} y \texttt{hash\_qr}). \texttt{v\_liquidacion\_caja} agrupa el total recaudado y número de transacciones por método de pago (\texttt{BANCO}, \texttt{VENTANILLA}, \texttt{TARJETA}, \texttt{TRANSFERENCIA}) para la Pestaña 3 de Cierre de Caja. \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 8: RECTIFICACIÓN DE MATRÍCULA
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 8: RECTIFICACIÓN DE MATRÍCULA (Interfaz 9 — CU-64 a CU-73)}}} \\
+\hline
+
+43 & Solicitar, Aprobar (\texttt{TX-02}) y Rechazar Rectificación de Matrícula (Cola 3) & \objProcTx \newline + \objView & \texttt{sp\_solicitar\_rectificacion} \newline \texttt{sp\_aprobar\_rectificacion} \newline \texttt{sp\_rechazar\_rectificacion} \newline \texttt{v\_rectificaciones\_pendientes} & \textbf{Tablas:} \texttt{rectificaciones}, \texttt{detalle\_rectificacion}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{auditoria}. & \texttt{sp\_solicitar\_rectificacion} valida la ventana de fechas de rectificación y encola la solicitud en estado \texttt{SOLICITADO} junto con sus movimientos (\texttt{RETIRO}, \texttt{AGREGAR}, \texttt{CAMBIO\_SECCION}). \texttt{sp\_aprobar\_rectificacion} ejecuta una transacción ACID completa en dos fases: primero procesa todos los retiros y bajas de cambios de sección (liberando créditos y vacantes), y luego procesa todas las altas en orden ascendente de sección (validando vacantes, cruces y créditos). Si cualquier movimiento falla, hace \texttt{ROLLBACK} total dejando la matrícula original intacta. \\
+\hline
+
+% -----------------------------------------------------------------------------
+% MÓDULO 9: REPORTES OFICIALES, ACTAS Y CIERRE DE SEMESTRE
+% -----------------------------------------------------------------------------
+\multicolumn{6}{|l|}{\cellcolor{badgeProc}\textbf{\textcolor{unjbgNavy}{MÓDULO 9: REPORTES OFICIALES (2 PTS RÚBRICA), ACTAS CON QR Y CIERRE DE SEMESTRE (Interfaz 8 — CU-49 a CU-55)}}} \\
+\hline
+
+\rowcolor{rowAlt}
+44 & Registrar / Actualizar Calificaciones del Estudiante en el Acta (\texttt{CU-51}) & \objProcTx & \texttt{sp\_registrar\_notas\_detalle} & \textbf{IN:} \texttt{p\_id\_detalle}, \texttt{p\_nota\_teoria}, \texttt{p\_nota\_practica}, \texttt{p\_nota\_final}, \texttt{p\_id\_usuario}\newline \textbf{Tablas:} \texttt{detalle\_matricula}, \texttt{matriculas}, \texttt{periodos\_academicos}. & Permite al docente o administrador registrar las calificaciones de una asignatura inscrita. Valida que las notas estén en el rango vigesimal $[0.00, 20.00]$ y que el período no esté \texttt{CERRADO}. Si \texttt{p\_nota\_final} no se envía explícitamente, la calcula promediando teoría y práctica, y actualiza \texttt{detalle\_matricula}. \\
+\hline
+45 & Trigger de Auditoría Forense ante Modificación de Calificaciones & \objTrig & \texttt{trg\_detalle\_mat\_audit\_notas} \newline {\scriptsize(\texttt{AFTER UPDATE ON detalle\_matricula})} & \textbf{Evento:} \texttt{AFTER UPDATE}\newline \textbf{Tabla Origen:} \texttt{detalle\_matricula}\newline \textbf{Tabla Destino:} \texttt{auditoria}. & Vigila la integridad de las notas oficiales: cada vez que se ejecuta un \texttt{UPDATE} sobre \texttt{detalle\_matricula} y cambia \texttt{nota\_teoria}, \texttt{nota\_practica} o \texttt{nota\_final}, inserta automáticamente un registro en \texttt{auditoria} con la nota anterior (\texttt{OLD}) y la nueva calificación (\texttt{NEW}), impidiendo alteraciones silenciosas de notas. \\
+\hline
+\rowcolor{rowAlt}
+46 & Cierre Formal del Semestre Académico (\texttt{TX-05}) con Cursor de Estado Académico & \objCursor & \texttt{sp\_cerrar\_semestre\_academico} & \textbf{IN:} \texttt{p\_id\_periodo}\newline \textbf{OUT:} \texttt{p\_total\_actualizados}, \texttt{p\_mensaje}\newline \textbf{Tablas:} \texttt{periodos\_academicos}, \texttt{estudiantes}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{cola\_matricula}, \texttt{lista\_espera\_seccion}. & Cierra formalmente el semestre en una transacción ACID: 1) Calcula el Promedio Ponderado Semestral (\texttt{PPS}), suma los nuevos créditos aprobados ($\ge 10.50$) y recalcula el Promedio Ponderado Acumulado (\texttt{PPA}) histórico; 2) Recorre a los estudiantes del período para actualizar su \texttt{ciclo\_actual}, marcar como \texttt{OBSERVADO} a quienes obtuvieron promedio semestral $< 10.50$ o promover a \texttt{EGRESADO} a quienes completaron los \texttt{creditos\_totales} de su plan; 3) Cierra las colas abiertas (\texttt{ABANDONADO}/\texttt{EXPIRADO}) y marca el período como \texttt{CERRADO}. \\
+\hline
+47 & Reporte Oficial 1 y 2: Padrón General (\texttt{CU-49}) y Nómina por Sección (\texttt{CU-50}) & \objView & \texttt{v\_rep\_padron\_estudiantes} \newline \texttt{v\_rep\_nomina\_seccion} & \textbf{Tablas:} \texttt{estudiantes}, \texttt{usuarios}, \texttt{escuelas\_profesionales}, \texttt{facultades}, \texttt{planes\_estudio}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{cursos}. & \textbf{Vistas para los 2 puntos de Reportes:} 1) \texttt{v\_rep\_padron\_estudiantes} genera el Padrón General de Estudiantes filtrable por Facultad, Escuela, Plan, Ciclo y Estado Académico; 2) \texttt{v\_rep\_nomina\_seccion} genera la Nómina Oficial y Lista de Asistencia por Curso y Sección, indicando código universitario, apellidos y nombres ordenados alfabéticamente, créditos y si su condición en el curso es \texttt{Regular} (\texttt{PRIMERA\_VEZ}) o \texttt{Repitente} (\texttt{SEGUNDA\_VEZ}/\texttt{TERCERA\_VEZ}). \\
+\hline
+\rowcolor{rowAlt}
+48 & Reporte Oficial 3 y 4: Acta Oficial con Hash QR (\texttt{CU-51}) y Ranking de Demanda (\texttt{CU-53}) & \objView & \texttt{v\_rep\_acta\_evaluacion} \newline \texttt{v\_rep\_demanda\_secciones} & \textbf{Tablas:} \texttt{detalle\_matricula}, \texttt{matriculas}, \texttt{secciones}, \texttt{cursos}, \texttt{usuarios}, \texttt{lista\_espera\_seccion}, \texttt{aulas}. & \textbf{Vistas para los 2 puntos de Reportes:} 3) \texttt{v\_rep\_acta\_evaluacion} genera el Acta Promocional Oficial con notas de teoría, práctica, promedio final redondeado, condición (\texttt{APROBADO} $\ge 10.50$ o \texttt{DESAPROBADO}) y el \textbf{Hash SHA-256 de firma digital} de la fila; 4) \texttt{v\_rep\_demanda\_secciones} genera el Ranking de Demanda Académica calculando el porcentaje de demanda real \texttt{((vacantes\_ocupadas + en\_espera) / (vacantes\_total + vacantes\_extra)) * 100} para identificar cursos con sobredemanda ($>100\%$). \\
+\hline
+
+\end{longtable}
+\normalsize
+
+\vspace{4pt}
+\section{Resumen del Catálogo de las 14 Funciones Almacenadas (\texttt{fn\_*})}
+
+Para responder con precisión a las preguntas del docente durante la defensa del proyecto, se resume a continuación la firma, determinismo y responsabilidad exacta de cada una de las \textbf{14 Funciones Almacenadas} que conforman la capa de reglas de negocio de \texttt{bd\_matricula\_universitaria}:
+
+\vspace{2pt}
+\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{|p{0.5cm}|p{5.2cm}|p{4.8cm}|p{3.0cm}|p{11.7cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre de la Función}} & 
+\textcolor{white}{\textbf{Parámetros de Entrada}} & 
+\textcolor{white}{\textbf{Tipo de Retorno}} & 
+\textcolor{white}{\textbf{Qué Hace Exactamente la Función y Dónde se Utiliza}} \\
+\hline
+\endfirsthead
+\hline
+\endlastfoot
+
+01 & \texttt{fn\_nota\_minima()} & Sin parámetros & \texttt{DECIMAL(4,2)} & Retorna \texttt{10.50}. Define la nota mínima aprobatoria según el Reglamento General de Estudios de la UNJBG. Se usa en prerrequisitos, kárdex, actas y cierre de semestre. \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{fn\_limite\_creditos\_base()} & Sin parámetros & \texttt{TINYINT UNSIGNED} & Retorna \texttt{22}. Define el tope estándar de créditos para un estudiante regular por semestre académico. Se usa en \texttt{fn\_validar\_limite\_creditos}. \\
+\hline
+03 & \texttt{fn\_promedio\_merito()} & Sin parámetros & \texttt{DECIMAL(4,2)} & Retorna \texttt{14.00}. Define la valla de alto rendimiento (tercio superior) para otorgar prioridad automática en la cola de matrícula y $+4$ créditos adicionales. \\
+\hline
+\rowcolor{rowAlt}
+04 & \texttt{fn\_detectar\_cruce\_horario} & \texttt{(p\_id\_matricula, p\_id\_seccion)} & \texttt{TINYINT(1)} & Compara los horarios de la sección candidata contra las secciones ya \texttt{INSCRITO}s en esa matrícula. Retorna \texttt{1} si hay solapamiento de día y hora, o \texttt{0} si no hay cruce. \\
+\hline
+05 & \texttt{fn\_validar\_prerrequisitos} & \texttt{(p\_id\_estudiante, p\_id\_curso)} & \texttt{TINYINT(1)} & Verifica si el estudiante aprobó todos los cursos requisito en períodos \texttt{CERRADO}s (o los tiene \texttt{CONVALIDADO}s). Retorna \texttt{1} si cumple todos y \texttt{0} si le falta alguno. \\
+\hline
+\rowcolor{rowAlt}
+06 & \texttt{fn\_vacantes\_disponibles} & \texttt{(p\_id\_seccion)} & \texttt{INT} & Calcula \texttt{(vacantes\_total + vacantes\_extra) - vacantes\_ocupadas}. Retorna el número de cupos libres ($\ge 0$) o \texttt{NULL} si la sección no existe. \\
+\hline
+07 & \texttt{fn\_calcular\_creditos\_matricula} & \texttt{(p\_id\_matricula)} & \texttt{SMALLINT UNSIGNED} & Suma en vivo los créditos de todas las asignaturas con estado \texttt{INSCRITO} en \texttt{detalle\_matricula} para auditar la consistencia del campo \texttt{matriculas.total\_creditos}. \\
+\hline
+\rowcolor{rowAlt}
+08 & \texttt{fn\_validar\_limite\_creditos} & \texttt{(p\_id\_matricula, p\_cred\_nuevos)} & \texttt{TINYINT(1)} & Comprueba si \texttt{total\_creditos + p\_cred\_nuevos <= fn\_limite\_creditos\_base() + creditos\_adicionales}. Retorna \texttt{1} si está dentro del límite y \texttt{0} si se excede. \\
+\hline
+09 & \texttt{fn\_validar\_curso\_en\_plan} & \texttt{(p\_id\_estudiante, p\_id\_curso)} & \texttt{TINYINT(1)} & Verifica en \texttt{malla\_curricular} si la asignatura pertenece al \texttt{id\_plan} asignado al estudiante. Retorna \texttt{1} si pertenece y \texttt{0} si es ajena a su plan. \\
+\hline
+\rowcolor{rowAlt}
+10 & \texttt{fn\_calcular\_saldo\_deuda} & \texttt{(p\_id\_deuda)} & \texttt{DECIMAL(8,2)} & Calcula el saldo pendiente de una cuenta por cobrar restando al monto original de \texttt{deudas\_estudiante} la suma de todos sus abonos en \texttt{pagos}. \\
+\hline
+11 & \texttt{fn\_creditos\_adicionales} & \texttt{(p\_id\_estudiante, p\_id\_periodo)} & \texttt{TINYINT UNSIGNED} & Retorna \texttt{4} créditos extra si el alumno tuvo promedio semestral anterior $\ge 14.00$ o cuenta con resolución \texttt{AMPLIACION\_CREDITOS} vigente en el año del período; si no, retorna \texttt{0}. \\
+\hline
+\rowcolor{rowAlt}
+12 & \texttt{fn\_generar\_codigo\_univ} & \texttt{(p\_anio\_ingreso)} & \texttt{VARCHAR(15)} & Genera el siguiente código universitario disponible para el año de ingreso con formato \texttt{YYYY-NNNNNN} (ej. \texttt{2026-119011}). \\
+\hline
+13 & \texttt{fn\_detectar\_cruce\_aula} & \texttt{(p\_id\_periodo, p\_id\_aula, p\_dia, p\_ini, p\_fin, p\_id\_sec\_ignorar)} & \texttt{TINYINT(1)} & Verifica si un aula o laboratorio físico ya está ocupado por otra sección en el mismo semestre, día y bloque horario. Retorna \texttt{1} si hay cruce de ambiente y \texttt{0} si está libre. \\
+\hline
+\rowcolor{rowAlt}
+14 & \texttt{fn\_detectar\_cruce\_docente} & \texttt{(p\_id\_periodo, p\_id\_docente, p\_dia, p\_ini, p\_fin, p\_id\_sec\_ignorar)} & \texttt{TINYINT(1)} & Verifica si un docente ya tiene clase asignada en otra sección en el mismo semestre, día y bloque horario. Retorna \texttt{1} si hay cruce de docente y \texttt{0} si está disponible. \\
+\hline
+\end{longtable}
+\normalsize
+
+\end{document}
