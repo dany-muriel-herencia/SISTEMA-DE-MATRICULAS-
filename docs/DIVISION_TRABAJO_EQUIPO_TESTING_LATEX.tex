@@ -1,0 +1,487 @@
+\documentclass[10pt,a4paper,landscape]{article}
+
+% =============================================================================
+% PAQUETES
+% =============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=1.1cm, top=1.6cm, bottom=1.6cm]{geometry}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+% =============================================================================
+% PALETA DE COLORES INSTITUCIONAL (UNJBG)
+% =============================================================================
+\definecolor{unjbgNavy}{HTML}{0A2540}
+\definecolor{unjbgBlue}{HTML}{1D4ED8}
+\definecolor{unjbgGold}{HTML}{D4AF37}
+\definecolor{rowAlt}{HTML}{F8FAFC}
+\definecolor{danyHeader}{HTML}{DBEAFE}
+\definecolor{jhosepHeader}{HTML}{DCFCE7}
+\definecolor{angelHeader}{HTML}{FEF3C7}
+
+% =============================================================================
+% COMANDOS DE ESTADO Y OBJETOS
+% =============================================================================
+\newcommand{\stListo}{\textbf{\textcolor{teal!80!black}{[IMPLEMENTADO v4.0]}}}
+\newcommand{\stModif}{\textbf{\textcolor{orange!85!black}{[MODIFICAR / AMPLIAR]}}}
+\newcommand{\stNuevo}{\textbf{\textcolor{red!75!black}{[NUEVO A CREAR]}}}
+
+\newcommand{\objProcTx}{\textbf{\textcolor{unjbgNavy}{PROCEDURE (TX)}}}
+\newcommand{\objProcCrud}{\textbf{\textcolor{unjbgBlue}{PROCEDURE (CRUD)}}}
+\newcommand{\objFunc}{\textbf{\textcolor{teal!80!black}{FUNCIÓN (\texttt{fn\_*})}}}
+\newcommand{\objTrig}{\textbf{\textcolor{orange!80!black}{TRIGGER (\texttt{trg\_*})}}}
+\newcommand{\objView}{\textbf{\textcolor{violet!85!black}{VISTA (\texttt{v\_*})}}}
+\newcommand{\objCursor}{\textbf{\textcolor{red!75!black}{PROC + CURSOR + TX}}}
+
+% =============================================================================
+% ENCABEZADO Y PIE DE PÁGINA
+% =============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{\textcolor{unjbgNavy}{UNJBG - ESIS}} \quad|\quad Plan de División Modular y Testing Independiente BD $\leftrightarrow$ Backend PHP (0\% ORM)}
+\fancyhead[R]{\textbf{Equipo: Dany Muriel $\cdot$ Jhosep Arocutipa $\cdot$ Ángel}}
+\fancyfoot[L]{\footnotesize Repositorio: \texttt{https://github.com/dany-muriel-herencia/SISTEMA-DE-MATRICULAS-.git}}
+\fancyfoot[R]{\footnotesize Página \thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\titleformat{\section}{\large\bfseries\color{unjbgNavy}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{unjbgBlue}}{\thesubsection.}{0.5em}{}
+
+\begin{document}
+
+% =============================================================================
+% TÍTULO PRINCIPAL
+% =============================================================================
+\begin{center}
+    {\LARGE \textbf{\textcolor{unjbgNavy}{PLAN DE DIVISIÓN DE ACTIVIDADES SQL, BACKEND Y TESTING INDEPENDIENTE POR INTEGRANTE}}}\\[3pt]
+    {\normalsize \textbf{Sistema de Matrícula Universitaria (\texttt{bd\_matricula\_universitaria} — 27 Tablas) \quad|\quad Equipo: Dany Muriel, Jhosep Arocutipa y Ángel}}\\[4pt]
+\end{center}
+
+\section{Estrategia de Desacoplamiento para Testing Paralelo sin Bloqueos entre Integrantes}
+
+Para que \textbf{Dany}, \textbf{Jhosep} y \textbf{Ángel} puedan programar, hacer commits en GitHub (\texttt{SISTEMA-DE-MATRICULAS-}) y probar sus propios endpoints en el backend PHP sin depender de que otro compañero termine su parte y sin generar conflictos de \textit{merge} (\textit{Zero-Conflict Architecture}), el proyecto se ha dividido en \textbf{3 Bloques Verticales Independientes}:
+
+\begin{enumerate}[noitemsep, topsep=2pt, leftmargin=1.4cm]
+    \item \textbf{Aislamiento por Archivos SQL y Módulos PHP:} Cada integrante es dueño exclusivo de sus propios archivos en \texttt{database/} y de sus propios controladores/repositorios en \texttt{backend/src/Modules/}. Ningún integrante edita el archivo PHP ni el archivo SQL de otro.
+    \item \textbf{Independencia de Pruebas gracias al Seed Base (\texttt{04\_seeds/01\_datos\_prueba.sql}):} Como la base de datos ya carga datos semilla de las 27 tablas (roles, usuarios, 10 estudiantes, cursos, malla, secciones, matrículas, deudas y pagos), \textbf{cualquier integrante puede probar sus procedimientos, triggers, cursores y vistas desde el Día 1} directamente con \texttt{CALL sp\_*()} o vía Postman/\texttt{curl} contra \texttt{backend/public/index.php}.
+    \item \textbf{Convención Única de Respuesta con el Backend:} Todo procedimiento que muta datos devuelve siempre \texttt{OUT p\_codigo\_resp VARCHAR(25)} (\texttt{'EXITO'} o código de regla de negocio) y \texttt{OUT p\_mensaje VARCHAR(255)}, consumido en PHP mediante \texttt{Database::callStoredProcedure(...)}.
+\end{enumerate}
+
+\vspace{3pt}
+
+% Cuadro Resumen de División equitativa
+\begin{center}
+\renewcommand{\arraystretch}{1.22}
+\footnotesize
+\begin{tabular}{|p{3.8cm}|p{5.5cm}|p{6.2cm}|p{5.2cm}|p{4.3cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{Integrante}} & 
+\textcolor{white}{\textbf{Módulos de Interfaces Asignados}} & 
+\textcolor{white}{\textbf{Archivos Exclusivos en Backend PHP (\texttt{backend/src/Modules/})}} & 
+\textcolor{white}{\textbf{Archivos Exclusivos en Base de Datos (\texttt{database/})}} & 
+\textcolor{white}{\textbf{Cuota de Objetos SQL a Cargo}} \\
+\hline
+\textbf{1. DANY MURIEL}\newline {\scriptsize(Lead / QA \& Motor Core)} & 
+$\bullet$ Seguridad, Login y Auditoría\newline
+$\bullet$ Gestión Académica y Malla\newline
+$\bullet$ Motor Matrícula Alumno (\texttt{TX-01}) & 
+$\bullet$ \texttt{Modules/Auth/*}\newline
+$\bullet$ \texttt{Modules/Academico/*}\newline
+$\bullet$ \texttt{Modules/Matricula/*} {\scriptsize(Core TX-01)} & 
+$\bullet$ \texttt{03\_procedures/01\_internos...}\newline
+$\bullet$ \texttt{03\_procedures/03\_matricula...}\newline
+$\bullet$ \texttt{03\_procedures/08\_seguridad\_acad.sql} & 
+$\bullet$ 15 Procedures\newline
+$\bullet$ 7 Funciones\newline
+$\bullet$ 2 Triggers $\cdot$ 3 Vistas \\
+\hline
+\rowcolor{rowAlt}
+\textbf{2. JHOSEP AROCUTIPA}\newline {\scriptsize(Estudiantes, Finanzas \& Reportes)} & 
+$\bullet$ Directorio Estudiantes y Kárdex\newline
+$\bullet$ Pagos, Tesorería y Boletas QR\newline
+$\bullet$ Reportes Oficiales, Actas y Cierre & 
+$\bullet$ \texttt{Modules/Estudiantes/*}\newline
+$\bullet$ \texttt{Modules/Finanzas/*}\newline
+$\bullet$ \texttt{Modules/Reportes/*} & 
+$\bullet$ \texttt{03\_procedures/06\_pagos\_cierre...}\newline
+$\bullet$ \texttt{03\_procedures/09\_estudiantes\_rep.sql}\newline
+$\bullet$ \texttt{01\_schema/02\_vistas.sql} {\scriptsize(Reportes)} & 
+$\bullet$ 11 Procedures (\textbf{2 Cursores})\newline
+$\bullet$ 2 Funciones\newline
+$\bullet$ 3 Triggers $\cdot$ 9 Vistas \\
+\hline
+\textbf{3. ÁNGEL}\newline {\scriptsize(Colas, Horarios \& Rectificaciones)} & 
+$\bullet$ Horarios, Aulas y Cruces Físicos\newline
+$\bullet$ Centro Matrícula Admin y Colas\newline
+$\bullet$ Rectificación y Lista de Espera & 
+$\bullet$ \texttt{Modules/Horarios/*}\newline
+$\bullet$ \texttt{Modules/Rectificacion/*}\newline
+$\bullet$ \texttt{Modules/Matricula/*} {\scriptsize(Colas/Vacantes)} & 
+$\bullet$ \texttt{03\_procedures/02\_cola\_turnos...}\newline
+$\bullet$ \texttt{03\_procedures/04\_lista\_espera...}\newline
+$\bullet$ \texttt{03\_procedures/05\_rectificaciones...}\newline
+$\bullet$ \texttt{03\_procedures/10\_horarios\_aulas.sql} & 
+$\bullet$ 17 Procedures (\textbf{1 Cursor})\newline
+$\bullet$ 6 Funciones\newline
+$\bullet$ 3 Vistas \\
+\hline
+\end{tabular}
+\normalsize
+\end{center}
+
+\newpage
+
+% =============================================================================
+% BLOQUE 1: DANY MURIEL HERENCIA
+% =============================================================================
+\section{BLOQUE 1 — DANY MURIEL: Seguridad, Gestión Académica y Motor Transaccional de Matrícula}
+
+\textbf{Alcance del Bloque de Dany:} Dany controla la puerta de entrada (\texttt{Auth}), la estructura curricular (\texttt{Academico}: facultades, escuelas, planes, malla, prerrequisitos, periodos) y el corazón transaccional de matrícula del estudiante (\texttt{TX-01}). Todo su bloque se puede probar de forma 100\% autónoma usando los alumnos y secciones del seed inicial.
+
+\renewcommand{\arraystretch}{1.32}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\footnotesize
+\begin{longtable}{|p{0.5cm}|p{3.8cm}|p{2.9cm}|p{8.8cm}|p{9.2cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endhead
+\hline
+\endlastfoot
+
+\multicolumn{5}{|l|}{\cellcolor{danyHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 1.1 (DANY): AUTENTICACIÓN, SEGURIDAD, ROLES Y AUDITORÍA (\texttt{AuthController.php} / \texttt{AuthRepository.php})}}} \\
+\hline
+
+D1 & \texttt{sp\_validar\_login}\newline \objProcTx & \stNuevo & 
+\textbf{Debe tener:}
+1) Recibir \texttt{IN p\_identificador VARCHAR(100)}, \texttt{IN p\_password\_ok TINYINT(1)} (validado con \texttt{password\_verify} en PHP), \texttt{IN p\_ip VARCHAR(45)}, \texttt{OUT p\_codigo\_resp}, \texttt{OUT p\_mensaje}.
+2) Bloquear la fila en \texttt{usuarios} con \texttt{FOR UPDATE} buscando por \texttt{codigo\_usuario}, \texttt{email\_institucional}, \texttt{dni} o \texttt{codigo\_universitario}.
+3) Si \texttt{estado = 'BLOQUEADO'} o \texttt{'INACTIVO'}, devolver error inmediato.
+4) Si \texttt{p\_password\_ok = 0}, incrementar \texttt{intentos\_fallidos + 1}; si llega a 3, cambiar \texttt{estado = 'BLOQUEADO'} e insertar en \texttt{auditoria}.
+5) Si \texttt{p\_password\_ok = 1}, resetear \texttt{intentos\_fallidos = 0}, actualizar \texttt{ultimo\_acceso = NOW()} y registrar \texttt{LOGIN\_EXITOSO} en \texttt{auditoria}. & 
+\textbf{En Backend:} En \texttt{AuthRepository.php}, reemplazar los \texttt{UPDATE} sueltos de \texttt{registrarIntentoFallido()} y \texttt{registrarAccesoExitoso()} por \texttt{CALL sp\_validar\_login(...)}.\newline
+\textbf{Testing independiente:} Hacer \texttt{POST /api/v1/auth/login} con clave errónea 3 veces seguidas para el usuario \texttt{2024-119001} y verificar que al 3er intento devuelva \texttt{403 CUENTA\_BLOQUEADA}. \\
+\hline
+\rowcolor{rowAlt}
+D2 & \texttt{sp\_restablecer\_password}\newline \objProcTx & \stNuevo & 
+\textbf{Debe tener:}
+1) Recibir \texttt{IN p\_identificador VARCHAR(100)} (correo o DNI), \texttt{IN p\_nuevo\_hash VARCHAR(255)}, \texttt{OUT p\_codigo\_resp}, \texttt{OUT p\_mensaje}.
+2) Verificar existencia en \texttt{usuarios} (\texttt{FOR UPDATE}).
+3) Actualizar \texttt{password\_hash = p\_nuevo\_hash}, \texttt{intentos\_fallidos = 0} y si estaba \texttt{BLOQUEADO} pasarlo a \texttt{ACTIVO}.
+4) Insertar registro en \texttt{auditoria} (\texttt{accion = 'RESTABLECER\_CLAVE'}). & 
+\textbf{En Backend:} Agregar ruta \texttt{POST /api/v1/auth/recuperar} en \texttt{index.php} y método \texttt{recuperarClave()} en \texttt{AuthController.php}.\newline
+\textbf{Testing independiente:} Llamar al endpoint con el DNI de un usuario bloqueado en la prueba D1 y comprobar que vuelve a iniciar sesión. \\
+\hline
+D3 & \texttt{sp\_registrar\_usuario}\newline \texttt{sp\_actualizar\_usuario\_rol}\newline \texttt{sp\_cambiar\_estado\_usuario}\newline \objProcCrud & \stNuevo & 
+\textbf{Deben tener:}
+1) \texttt{sp\_registrar\_usuario}: validar que \texttt{dni}, \texttt{codigo\_usuario} y \texttt{email\_institucional} no estén duplicados; insertar en \texttt{usuarios} y auditar.
+2) \texttt{sp\_actualizar\_usuario\_rol}: actualizar datos personales e \texttt{id\_rol} (\texttt{CU-05}).
+3) \texttt{sp\_cambiar\_estado\_usuario}: cambiar estado en el switch de la tabla (\texttt{ACTIVO}/\texttt{INACTIVO}/\texttt{BLOQUEADO}) y resetear intentos si pasa a \texttt{ACTIVO} (\texttt{CU-06}). & 
+\textbf{En Backend:} Conectar en \texttt{AuthRepository::asignarRol()} y agregar \texttt{POST /api/v1/auth/usuarios/registrar} y \texttt{POST /api/v1/auth/usuarios/estado}.\newline
+\textbf{Testing independiente:} Cambiar el rol o desactivar un usuario desde Postman y verificar el cambio en la tabla \texttt{usuarios}. \\
+\hline
+\rowcolor{rowAlt}
+D4 & \texttt{trg\_usuarios\_auditoria\_upd}\newline \objTrig\newline +\newline \texttt{v\_usuarios\_seguridad}\newline \objView & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Trigger \texttt{AFTER UPDATE ON usuarios}:} Si \texttt{OLD.id\_rol <> NEW.id\_rol} o \texttt{OLD.estado <> NEW.estado}, insertar automáticamente en \texttt{auditoria} el valor \texttt{OLD} y \texttt{NEW}.
+2) \textbf{Vista \texttt{v\_usuarios\_seguridad}:} Unir \texttt{usuarios} + \texttt{roles} + subconsulta de la última operación en \texttt{auditoria}. & 
+\textbf{En Backend:} En \texttt{AuthRepository::listarUsuarios()}, cambiar la consulta por \texttt{SELECT * FROM v\_usuarios\_seguridad}.\newline
+\textbf{Testing independiente:} Ejecutar prueba D3 y luego hacer \texttt{GET /api/v1/auth/auditoria} para confirmar que el trigger insertó la fila automáticamente. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{danyHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 1.2 (DANY): GESTIÓN ACADÉMICA, PLANES, MALLA Y PERIODOS (\texttt{AcademicController.php} / \texttt{AcademicRepository.php})}}} \\
+\hline
+
+D5 & \texttt{fn\_nota\_minima}\newline \texttt{fn\_limite\_creditos\_base}\newline \texttt{fn\_promedio\_merito}\newline \texttt{fn\_validar\_curso\_en\_plan}\newline \texttt{fn\_validar\_prerrequisitos}\newline \objFunc & \stListo & 
+\textbf{Ya implementadas en \texttt{02\_functions/01\_funciones\_negocio.sql}:}
+Retornan \texttt{10.50}, \texttt{22}, \texttt{14.00}, validan si un curso pertenece al \texttt{id\_plan} del alumno en \texttt{malla\_curricular} y verifican si aprobó todos los prerrequisitos en períodos \texttt{CERRADO}s (o convalidados). & 
+\textbf{En Backend:} Ya conectadas en \texttt{AcademicRepository::validarPrerrequisitosYPlan()}.\newline
+\textbf{Testing independiente:} \texttt{POST /api/v1/academic/prerrequisitos/validar} enviando \texttt{\{"idEstudiante": 1, "idCurso": 12\}}. \\
+\hline
+\rowcolor{rowAlt}
+D6 & \texttt{sp\_guardar\_facultad}\newline \texttt{sp\_guardar\_escuela}\newline \texttt{sp\_guardar\_plan\_estudio}\newline \texttt{sp\_guardar\_curso\_malla}\newline \texttt{sp\_guardar\_periodo\_academico}\newline \objProcCrud / \objProcTx & \stNuevo & 
+\textbf{Deben tener:}
+1) Si el ID de entrada es \texttt{0} o \texttt{NULL}, hacen \texttt{INSERT}; si es $>0$, hacen \texttt{UPDATE} (patrón Upsert para los modales de la Interfaz 4).
+2) \texttt{sp\_guardar\_curso\_malla} abre transacción: guarda en \texttt{cursos}, asigna el ciclo en \texttt{malla\_curricular} e inserta en \texttt{prerrequisitos} validando que el curso requisito sea de un ciclo inferior. & 
+\textbf{En Backend:} Agregar en \texttt{AcademicController.php} los endpoints \texttt{POST /api/v1/academic/facultades}, \texttt{/planes}, \texttt{/cursos} y \texttt{/periodos}.\newline
+\textbf{Testing independiente:} Crear un curso nuevo en el Ciclo VI con prerrequisito del Ciclo V y comprobar que aparece en la malla. \\
+\hline
+D7 & \texttt{trg\_periodos\_proteger\_del}\newline \objTrig\newline +\newline \texttt{v\_malla\_curricular\_detalle}\newline \objView & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Trigger \texttt{BEFORE DELETE ON periodos\_academicos}:} Si \texttt{OLD.estado IN ('ACTIVO', 'CERRADO')}, lanzar \texttt{SIGNAL SQLSTATE '45000'} impidiendo borrar semestres con historial.
+2) \textbf{Vista \texttt{v\_malla\_curricular\_detalle}:} Encapsular el \texttt{SELECT ... GROUP\_CONCAT} de los cursos por plan, ciclo y prerrequisitos. & 
+\textbf{En Backend:} En \texttt{AcademicRepository::obtenerMallaPorPlan()}, usar \texttt{SELECT * FROM v\_malla\_curricular\_detalle WHERE id\_plan = :id\_plan}.\newline
+\textbf{Testing independiente:} \texttt{GET /api/v1/academic/planes/1/malla} y probar \texttt{DELETE FROM periodos\_academicos WHERE id\_periodo = 1} para ver actuar al trigger. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{danyHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 1.3 (DANY): MOTOR TRANSACCIONAL DE MATRÍCULA (\texttt{TX-01} — \texttt{EnrollmentController.php})}}} \\
+\hline
+
+\rowcolor{rowAlt}
+D8 & \texttt{fn\_calcular\_creditos\_matricula}\newline \texttt{fn\_validar\_limite\_creditos}\newline \texttt{fn\_creditos\_adicionales}\newline \texttt{sp\_i\_inscribir\_curso}\newline \texttt{sp\_i\_retirar\_curso}\newline \texttt{sp\_crear\_matricula\_pendiente}\newline \texttt{sp\_confirmar\_matricula}\newline \texttt{sp\_registrar\_matricula\_completa}\newline \texttt{sp\_inscribir\_curso\_matricula}\newline \texttt{sp\_retirar\_curso} & \stListo & 
+\textbf{Ya implementados en \texttt{03\_procedures/01\_...} y \texttt{03\_...}:}
+Realizan la matrícula completa Todo o Nada (\texttt{TX-01}) con bloqueo pesimista \texttt{FOR UPDATE} en orden ascendente de \texttt{id\_seccion}, validando turno en cola, deuda vencida, ficha médica, plan, prerrequisitos, cruces y tope de créditos (\texttt{22 + adicionales}). & 
+\textbf{En Backend:} Ya conectados al 100\% en \texttt{EnrollmentRepository.php} (\texttt{/api/v1/enrollment/registrar-completa}, \texttt{/pendiente}, \texttt{/confirmar}, \texttt{/curso/inscribir}, \texttt{/curso/retirar}).\newline
+\textbf{Testing independiente:} Ejecutar \texttt{POST /api/v1/enrollment/registrar-completa} con un estudiante en turno y lista de secciones \texttt{"1,2,3"}. \\
+\hline
+D9 & \texttt{sp\_listar\_oferta\_estudiante}\newline \objProcCrud & \stNuevo & 
+\textbf{Debe tener:}
+Recibir \texttt{IN p\_id\_estudiante}, \texttt{IN p\_id\_periodo}. Devolver todas las secciones del período activo que pertenecen al \texttt{id\_plan} del estudiante y que aún no haya aprobado, calculando en cada fila: \texttt{fn\_vacantes\_disponibles(s.id\_seccion)}, \texttt{fn\_validar\_prerrequisitos(p\_id\_estudiante, s.id\_curso)} y los bloques horarios concatenados. & 
+\textbf{En Backend:} Agregar endpoint \texttt{GET /api/v1/enrollment/oferta/\{idEstudiante\}/\{idPeriodo\}} en \texttt{EnrollmentController.php}.\newline
+\textbf{Testing independiente:} Consultar la oferta del estudiante 1 en el período 2 para alimentar el catálogo del Portal Estudiante. \\
+\hline
+
+\end{longtable}
+\normalsize
+
+\newpage
+
+% =============================================================================
+% BLOQUE 2: JHOSEP AROCUTIPA MAMANI
+% =============================================================================
+\section{BLOQUE 2 — JHOSEP AROCUTIPA: Estudiantes, Kárdex, Tesorería/Pagos y Reportes Oficiales (2 pts)}
+
+\textbf{Alcance del Bloque de Jhosep:} Jhosep es propietario de 3 módulos completos sin colisionar con Dany ni con Ángel: \textbf{1) Directorio de Estudiantes, Kárdex y Resoluciones} (\texttt{Modules/Estudiantes}), \textbf{2) Gestión de Pagos, Cuotas con Cursor y Boletas QR} (\texttt{Modules/Finanzas}) y \textbf{3) Centro de Reportes Oficiales, Actas con Hash SHA-256 y Cierre de Semestre} (\texttt{Modules/Reportes}, que vale \textbf{2 puntos directos} en la rúbrica del docente).
+
+\renewcommand{\arraystretch}{1.32}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\footnotesize
+\begin{longtable}{|p{0.5cm}|p{3.8cm}|p{2.9cm}|p{8.8cm}|p{9.2cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endhead
+\hline
+\endlastfoot
+
+\multicolumn{5}{|l|}{\cellcolor{jhosepHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 2.1 (JHOSEP): DIRECTORIO DE ESTUDIANTES, KÁRDEX Y RESOLUCIONES (\texttt{StudentController.php} / \texttt{StudentRepository.php})}}} \\
+\hline
+
+J1 & \texttt{fn\_generar\_codigo\_univ}\newline \objFunc\newline +\newline \texttt{sp\_registrar\_estudiante}\newline \objProcTx & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Función \texttt{fn\_generar\_codigo\_univ(p\_anio YEAR)}:} Busca el máximo correlativo de \texttt{codigo\_universitario} para ese año en \texttt{estudiantes}, le suma $+1$ y devuelve \texttt{'YYYY-119XXX'}.
+2) \textbf{Procedure \texttt{sp\_registrar\_estudiante}:} Abre transacción, genera el código con la función, inserta primero en \texttt{usuarios} (rol Estudiante), luego en \texttt{estudiantes} y crea su fila base en \texttt{ficha\_medica}. & 
+\textbf{En Backend:} Agregar \texttt{POST /api/v1/students/registrar} en \texttt{StudentController.php} llamando a \texttt{CALL sp\_registrar\_estudiante(...)}.\newline
+\textbf{Testing independiente:} Enviar un JSON con un alumno ingresante 2026 y verificar que se creó su usuario, su código \texttt{2026-119001} y su ficha médica. \\
+\hline
+\rowcolor{rowAlt}
+J2 & \texttt{sp\_actualizar\_estudiante\_ficha}\newline \texttt{sp\_aplicar\_resolucion\_est}\newline \objProcTx & \stNuevo & 
+\textbf{Deben tener:}
+1) \texttt{sp\_actualizar\_estudiante\_ficha}: Actualiza datos del alumno y aprueba o modifica su \texttt{ficha\_medica} (\texttt{apto\_medico = 1}, grupo sanguíneo, peso, talla, contacto).
+2) \texttt{sp\_aplicar\_resolucion\_est}: Recibe \texttt{p\_tipo\_resolucion}, \texttt{p\_numero\_doc}, \texttt{p\_nuevo\_estado}, \texttt{p\_nuevo\_plan}. Inserta la resolución en \texttt{resoluciones\_estudiante} y actualiza \texttt{estado\_academico} (\texttt{REGULAR}, \texttt{OBSERVADO}, \texttt{RETIRADO}, \texttt{EGRESADO}) o cambia de carrera/plan en \texttt{estudiantes}. & 
+\textbf{En Backend:} Agregar \texttt{POST /api/v1/students/\{id\}/ficha-medica} y \texttt{POST /api/v1/students/\{id\}/resolucion} en \texttt{StudentController.php}.\newline
+\textbf{Testing independiente:} Emitir una resolución de cambio de plan o suspensión a un alumno de prueba y verificar el registro en \texttt{resoluciones\_estudiante}. \\
+\hline
+J3 & \texttt{trg\_estudiantes\_audit\_upd}\newline \objTrig\newline +\newline \texttt{v\_kardex\_estudiante}\newline \objView\newline +\newline \texttt{sp\_obtener\_kardex\_estudiante} & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Trigger \texttt{AFTER UPDATE ON estudiantes}:} Si cambia \texttt{estado\_academico}, \texttt{id\_plan}, \texttt{promedio\_ponderado} o \texttt{creditos\_aprobados}, inserta en \texttt{auditoria} los valores \texttt{OLD} y \texttt{NEW}.
+2) \textbf{Vista \texttt{v\_kardex\_estudiante} y SP \texttt{sp\_obtener\_kardex\_estudiante}:} Devuelve el resumen de avance (\texttt{creditos\_aprobados / creditos\_totales}) y el historial de cursos con condición (\texttt{APROBADO} $\ge 10.50$, \texttt{DESAPROBADO}, \texttt{RETIRADO}, \texttt{CONVALIDADO}). & 
+\textbf{En Backend:} En \texttt{StudentRepository::obtenerKardex()}, reemplazar las dos consultas manuales por \texttt{CALL sp\_obtener\_kardex\_estudiante(:id)}.\newline
+\textbf{Testing independiente:} \texttt{GET /api/v1/students/1/kardex} y verificar que devuelve el avance curricular y todas las notas históricas. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{jhosepHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 2.2 (JHOSEP): PAGOS, CUOTAS MASIVAS CON CURSOR Y BOLETAS QR (\texttt{FinanceController.php} / \texttt{FinanceRepository.php})}}} \\
+\hline
+
+\rowcolor{rowAlt}
+J4 & \texttt{fn\_calcular\_saldo\_deuda}\newline \objFunc\newline +\newline \texttt{sp\_registrar\_pago}\newline \objProcTx & \stListo & 
+\textbf{Ya implementados en \texttt{02\_functions/01\_...} y \texttt{03\_procedures/06\_...}:}
+Calcula el saldo pendiente exacto y registra pagos en transacción ACID con bloqueo \texttt{FOR UPDATE}, actualizando la deuda a \texttt{PAGADO} o \texttt{FRACCIONADO} y generando el comprobante correlativo \texttt{B001-XXXXXX}. & 
+\textbf{En Backend:} Ya conectados en \texttt{FinanceRepository::registrarPago()}.\newline
+\textbf{Testing independiente:} \texttt{POST /api/v1/finance/pagos/ventanilla} pagando una deuda pendiente y verificando la boleta emitida. \\
+\hline
+J5 & \texttt{sp\_generar\_cuotas\_periodo}\newline \objCursor\newline +\newline \texttt{sp\_guardar\_concepto\_pago}\newline \objProcCrud & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{\texttt{sp\_generar\_cuotas\_periodo} (CURSOR EXPLÍCITO 1):} Declarar \texttt{DECLARE cur\_est CURSOR FOR SELECT id\_estudiante FROM estudiantes WHERE estado\_academico IN ('REGULAR','OBSERVADO')}. Recorrer con \texttt{LOOP} dentro de una transacción e insertar en \texttt{deudas\_estudiante} la cuota del semestre si el alumno aún no la tiene (\texttt{CU-44}).
+2) \textbf{\texttt{sp\_guardar\_concepto\_pago}:} Crear o editar tasas del catálogo TUPA (\texttt{CU-43}). & 
+\textbf{En Backend:} Agregar en \texttt{FinanceController.php} las rutas \texttt{POST /api/v1/finance/cuotas/generar} y \texttt{POST /api/v1/finance/conceptos}.\newline
+\textbf{Testing independiente:} Ejecutar el generador de cuotas para el período activo y verificar que el cursor creó las deudas a los estudiantes sin duplicar. \\
+\hline
+\rowcolor{rowAlt}
+J6 & \texttt{trg\_comprobantes\_hash\_qr}\newline \objTrig\newline +\newline \texttt{v\_seguimiento\_pagos}\newline \texttt{v\_liquidacion\_caja}\newline \objView & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Trigger \texttt{BEFORE INSERT ON comprobantes}:} Si \texttt{NEW.hash\_qr IS NULL}, calcular \texttt{SET NEW.hash\_qr = SHA2(CONCAT('UNJBG|', NEW.serie, '-', LPAD(NEW.correlativo,6,'0'), '|', NEW.id\_pago, '|', NEW.monto\_total), 256)}.
+2) \textbf{Vistas \texttt{v\_seguimiento\_pagos} y \texttt{v\_liquidacion\_caja}:} Listado de pagos/boletas por alumno y resumen de recaudación por método (\texttt{BANCO}, \texttt{VENTANILLA}, \texttt{TARJETA}, \texttt{TRANSFERENCIA}). & 
+\textbf{En Backend:} Agregar \texttt{GET /api/v1/finance/seguimiento} y \texttt{GET /api/v1/finance/liquidacion} en \texttt{FinanceController.php}.\newline
+\textbf{Testing independiente:} Registrar un pago en J4 y comprobar en la tabla \texttt{comprobantes} que el campo \texttt{hash\_qr} se llenó solo con un hash SHA-256 de 64 caracteres. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{jhosepHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 2.3 (JHOSEP): REPORTES OFICIALES (2 PTS), NOTAS Y CIERRE DE SEMESTRE (\texttt{ReportController.php} / \texttt{ReportRepository.php})}}} \\
+\hline
+
+J7 & \texttt{sp\_registrar\_notas\_detalle}\newline \objProcTx\newline +\newline \texttt{trg\_detalle\_mat\_audit\_notas}\newline \objTrig & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{Procedure \texttt{sp\_registrar\_notas\_detalle}:} Recibe \texttt{p\_id\_detalle}, \texttt{p\_nota\_teoria}, \texttt{p\_nota\_practica}, \texttt{p\_nota\_final}. Valida rango $[0, 20]$ y que el período no esté \texttt{CERRADO}, y actualiza las notas en \texttt{detalle\_matricula}.
+2) \textbf{Trigger \texttt{AFTER UPDATE ON detalle\_matricula}:} Si cambió alguna de las 3 notas, inserta automáticamente en \texttt{auditoria} la nota anterior (\texttt{OLD}) y la nota nueva (\texttt{NEW}). & 
+\textbf{En Backend:} Agregar \texttt{POST /api/v1/reporting/notas} en \texttt{ReportController.php}.\newline
+\textbf{Testing independiente:} Subir o modificar la nota de un alumno en una sección y verificar que aparece tanto en el Acta como en la tabla \texttt{auditoria}. \\
+\hline
+\rowcolor{rowAlt}
+J8 & \texttt{sp\_cerrar\_semestre\_academico}\newline \objCursor & \stModif & 
+\textbf{Modificar en \texttt{03\_procedures/06\_pagos\_y\_cierre\_semestre.sql}:}
+Mantener el cálculo de \texttt{PPS}, \texttt{PPA} y cierre de colas que ya existe, y agregarle el \textbf{CURSOR EXPLÍCITO 2 (\texttt{cur\_cierre\_est})} para recorrer a los estudiantes matriculados del semestre: si completó los \texttt{creditos\_totales} de su plan pasa a \texttt{EGRESADO}; si su \texttt{PPS < 10.50} pasa a \texttt{OBSERVADO}; si aprobó ($\ge 10.50$) pasa a \texttt{REGULAR} y avanza \texttt{ciclo\_actual + 1}. & 
+\textbf{En Backend:} Ya conectado en \texttt{ReportRepository::cerrarSemestre()} (\texttt{POST /api/v1/reporting/cierre-semestre}).\newline
+\textbf{Testing independiente:} Probar el cierre sobre un período de prueba y verificar cómo el cursor actualiza el ciclo y estado académico de los alumnos. \\
+\hline
+J9 & \textbf{Las 6 Vistas de Reportes Oficiales:}\newline \texttt{v\_rep\_padron\_estudiantes}\newline \texttt{v\_rep\_nomina\_seccion}\newline \texttt{v\_rep\_acta\_evaluacion}\newline \texttt{v\_rep\_demanda\_secciones}\newline \texttt{v\_rep\_rendimiento\_cursos}\newline \texttt{v\_rep\_padron\_morosos}\newline \objView & \stNuevo & 
+\textbf{Deben tener (en \texttt{01\_schema/02\_vistas.sql}):}
+1) \texttt{v\_rep\_padron\_estudiantes} (\texttt{CU-49}): Padrón general filtrable por facultad, escuela, ciclo y estado.
+2) \texttt{v\_rep\_nomina\_seccion} (\texttt{CU-50}): Lista de asistencia por sección indicando condición \texttt{Regular} o \texttt{Repitente}.
+3) \texttt{v\_rep\_acta\_evaluacion} (\texttt{CU-51}): Acta oficial de notas con condición y \texttt{SHA2(..., 256)} por fila.
+4) \texttt{v\_rep\_demanda\_secciones} (\texttt{CU-53}): Ranking de cursos con sobredemanda ($>100\%$).
+5) \texttt{v\_rep\_rendimiento\_cursos} (\texttt{CU-54}): \% aprobados, \% desaprobados y riesgo (\texttt{ALTO}/\texttt{MEDIO}/\texttt{BAJO}).
+6) \texttt{v\_rep\_padron\_morosos} (\texttt{CU-55}): Alumnos con deuda vencida bloqueante. & 
+\textbf{En Backend:} En \texttt{ReportRepository.php}, consumir directamente estas 6 vistas para los endpoints de reportes y exportación PDF/Excel/CSV.\newline
+\textbf{Testing independiente:} Consultar \texttt{GET /api/v1/reporting/nomina/1}, \texttt{/actas/1}, \texttt{/padron}, \texttt{/demanda}, \texttt{/rendimiento} y \texttt{/morosos}. \\
+\hline
+
+\end{longtable}
+\normalsize
+
+\newpage
+
+% =============================================================================
+% BLOQUE 3: ÁNGEL
+% =============================================================================
+\section{BLOQUE 3 — ÁNGEL: Horarios y Aulas, Colas de Matrícula Admin, Vacantes y Rectificaciones}
+
+\textbf{Alcance del Bloque de Ángel:} Ángel es propietario de toda la gestión de infraestructura horaria y de las 3 colas operativas del sistema: \textbf{1) Módulo de Horarios, Aulas Físicas y Resolución Automática de Cruces con Cursor} (\texttt{Modules/Horarios}), \textbf{2) Centro de Control de Matrícula Admin: Cola de Turnos en Vivo, Lista de Espera por Sección, Gestión de Vacantes y Matrícula Manual con Excepciones} (\texttt{Modules/Matricula} — parte Admin) y \textbf{3) Módulo de Rectificación de Matrícula con Stepper de 4 Oportunidades} (\texttt{Modules/Rectificacion}).
+
+\renewcommand{\arraystretch}{1.32}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+\footnotesize
+\begin{longtable}{|p{0.5cm}|p{3.8cm}|p{2.9cm}|p{8.8cm}|p{9.2cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Objeto SQL y Tipo}} & 
+\textcolor{white}{\textbf{Estado Actual}} & 
+\textcolor{white}{\textbf{Paso a Paso: Qué Debe Tener y Qué Hacer en SQL}} & 
+\textcolor{white}{\textbf{Coherencia con Backend PHP y Cómo Hacer el Testing}} \\
+\hline
+\endhead
+\hline
+\endlastfoot
+
+\multicolumn{5}{|l|}{\cellcolor{angelHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 3.1 (ÁNGEL): HORARIOS, AULAS FÍSICAS Y DETECCIÓN/RESOLUCIÓN DE CRUCES (\texttt{ScheduleController.php} / \texttt{ScheduleRepository.php})}}} \\
+\hline
+
+A1 & \texttt{fn\_detectar\_cruce\_horario}\newline \texttt{fn\_vacantes\_disponibles}\newline \texttt{sp\_consultar\_vacantes}\newline \objFunc / \objProcCrud & \stListo & 
+\textbf{Ya implementados en \texttt{02\_functions/01\_...} y \texttt{03\_procedures/07\_...}:}
+Detectan cruces horarios entre secciones del estudiante, calculan vacantes libres en vivo y listan la disponibilidad y personas en espera de todas las secciones del semestre. & 
+\textbf{En Backend:} Ya conectados en \texttt{ScheduleRepository.php} (\texttt{GET /api/v1/schedules/vacantes/\{idPeriodo\}} y \texttt{POST /api/v1/schedules/validar-cruce}).\newline
+\textbf{Testing independiente:} \texttt{GET /api/v1/schedules/vacantes/2}. \\
+\hline
+\rowcolor{rowAlt}
+A2 & \texttt{fn\_detectar\_cruce\_aula}\newline \texttt{fn\_detectar\_cruce\_docente}\newline \objFunc & \stNuevo & 
+\textbf{Deben tener:}
+1) \textbf{\texttt{fn\_detectar\_cruce\_aula(p\_id\_periodo, p\_id\_aula, p\_dia, p\_ini, p\_fin, p\_id\_sec\_ignorar)}:} Retorna \texttt{1} si otra sección del mismo semestre ya ocupa esa aula en el mismo día con intervalo solapado \texttt{(p\_ini < hora\_fin AND p\_fin > hora\_inicio)}, o \texttt{0} si está libre.
+2) \textbf{\texttt{fn\_detectar\_cruce\_docente(p\_id\_periodo, p\_id\_docente, p\_dia, p\_ini, p\_fin, p\_id\_sec\_ignorar)}:} Retorna \texttt{1} si el docente ya dicta otra sección en ese mismo día y rango horario, o \texttt{0} si está libre. & 
+\textbf{En Backend:} Exponer en \texttt{ScheduleRepository.php} un método \texttt{validarDisponibilidadAulaYDocente()} para el cuadro de validación en vivo del modal de Horarios.\newline
+\textbf{Testing independiente:} Consultar con \texttt{SELECT fn\_detectar\_cruce\_aula(2, 1, 'LUNES', '08:00', '10:00', 0)} y comprobar que detecta el aula ocupada. \\
+\hline
+A3 & \texttt{sp\_guardar\_aula}\newline \texttt{sp\_guardar\_seccion\_horario}\newline \texttt{sp\_eliminar\_bloque\_horario}\newline \objProcTx & \stNuevo & 
+\textbf{Deben tener:}
+1) \texttt{sp\_guardar\_aula}: Crear o editar aulas/laboratorios (\texttt{CU-32}: tipo, aforo máximo, equipamiento, estado).
+2) \texttt{sp\_guardar\_seccion\_horario}: En transacción, valida que \texttt{vacantes\_total <= aforo\_maximo}, invoca \texttt{fn\_detectar\_cruce\_aula} y \texttt{fn\_detectar\_cruce\_docente}; si ambos dan \texttt{0}, guarda la sección y el bloque en \texttt{horarios\_seccion}; si alguno da \texttt{1}, hace \texttt{ROLLBACK}.
+3) \texttt{sp\_eliminar\_bloque\_horario}: Elimina un bloque de \texttt{horarios\_seccion} dejando la franja libre. & 
+\textbf{En Backend:} Agregar en \texttt{ScheduleController.php} las rutas \texttt{POST /api/v1/schedules/aulas}, \texttt{POST /api/v1/schedules/bloques} y \texttt{DELETE /api/v1/schedules/bloques/\{id\}}.\newline
+\textbf{Testing independiente:} Intentar guardar dos secciones en el \texttt{AULA-204} el Martes de 08:00 a 10:00 y verificar que devuelve \texttt{CRUCE\_AULA}. \\
+\hline
+\rowcolor{rowAlt}
+A4 & \texttt{sp\_resolver\_cruce\_aula\_auto}\newline \objCursor\newline +\newline \texttt{v\_horarios\_secciones}\newline \objView & \stNuevo & 
+\textbf{Debe tener:}
+1) \textbf{\texttt{sp\_resolver\_cruce\_aula\_auto} (CURSOR EXPLÍCITO 3 — \texttt{CU-33}):} Recibe \texttt{p\_id\_seccion}. Usa un cursor para recorrer los horarios de la sección y busca en \texttt{aulas} un ambiente \texttt{DISPONIBLE} de la misma facultad con \texttt{aforo\_maximo >= vacantes\_total} donde \texttt{fn\_detectar\_cruce\_aula} sea \texttt{0} en todos sus bloques, reasignando automáticamente \texttt{secciones.id\_aula}.
+2) \textbf{Vista \texttt{v\_horarios\_secciones}:} Grilla semanal completa por ciclo y por ambiente. & 
+\textbf{En Backend:} Agregar \texttt{POST /api/v1/schedules/resolver-cruce} y \texttt{GET /api/v1/schedules/grilla} en \texttt{ScheduleController.php}.\newline
+\textbf{Testing independiente:} Llamar al endpoint con una sección en conflicto y verificar que el cursor la reubica a un laboratorio o aula disponible. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{angelHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 3.2 (ÁNGEL): COLA EN VIVO, LISTA DE ESPERA, VACANTES Y MATRÍCULA MANUAL ADMIN (\texttt{EnrollmentController.php})}}} \\
+\hline
+
+A5 & \texttt{sp\_ingresar\_cola\_matricula}\newline \texttt{sp\_atender\_siguiente\_cola}\newline \texttt{sp\_finalizar\_turno\_cola}\newline \texttt{sp\_abandonar\_cola}\newline \texttt{sp\_expirar\_turnos\_cola}\newline \texttt{sp\_consultar\_posicion\_cola}\newline \texttt{v\_cola\_matricula}\newline +\newline \texttt{sp\_espera\_inscribir}\newline \texttt{sp\_espera\_cancelar}\newline \texttt{sp\_espera\_promover}\newline \texttt{sp\_espera\_consultar}\newline \texttt{v\_lista\_espera} & \stListo & 
+\textbf{Ya implementados en \texttt{03\_procedures/02\_...} y \texttt{04\_...}:}
+Administran toda la Cola 1 (\texttt{cola\_matricula}: ingreso priorizado por PPA $\ge 14.00$, atención FIFO con \texttt{FOR UPDATE}, finalización, abandono y expiración) y la Cola 2 (\texttt{lista\_espera\_seccion}: inscripción cuando hay 0 vacantes y promoción automática cuando se libera un cupo). & 
+\textbf{En Backend:} Ya conectados en \texttt{EnrollmentRepository.php} (\texttt{/api/v1/enrollment/cola/*} y \texttt{/api/v1/enrollment/espera/*}).\newline
+\textbf{Testing independiente:} Hacer \texttt{POST /api/v1/enrollment/cola/ingresar} y luego \texttt{POST /api/v1/enrollment/cola/atender-siguiente}. \\
+\hline
+\rowcolor{rowAlt}
+A6 & \texttt{sp\_priorizar\_turno\_cola}\newline \texttt{sp\_actualizar\_vacantes\_seccion}\newline \texttt{sp\_registrar\_matricula\_manual}\newline \objProcTx & \stNuevo & 
+\textbf{Deben tener:}
+1) \texttt{sp\_priorizar\_turno\_cola} (\texttt{CU-40}): Cambia \texttt{priorizado = 1} a un alumno \texttt{EN\_ESPERA} en \texttt{cola\_matricula} y audita (botón \textit{``⚡ Priorizar Turno''}).
+2) \texttt{sp\_actualizar\_vacantes\_seccion} (\texttt{CU-43}): Ajusta \texttt{vacantes\_extra} en \texttt{secciones} y llama automáticamente a \texttt{sp\_i\_espera\_promover(p\_id\_seccion)} para que entren los de la lista de espera.
+3) \texttt{sp\_registrar\_matricula\_manual} (\texttt{CU-44, 45, 46}): Recibe los 2 switches de la Pestaña 3 Admin (\texttt{p\_autorizar\_sobrepaso}, \texttt{p\_autorizar\_cruce}) + \texttt{p\_numero\_rd}; amplía cupo si la sección está en 0, activa \texttt{bypass\_cruces} y matricula al alumno. & 
+\textbf{En Backend:} Agregar en \texttt{EnrollmentController.php} las rutas \texttt{POST /api/v1/enrollment/cola/priorizar}, \texttt{POST /api/v1/enrollment/vacantes/ajustar} y \texttt{POST /api/v1/enrollment/registrar-manual}.\newline
+\textbf{Testing independiente:} Ampliar $+2$ vacantes extra a una sección llena que tenga alumnos en \texttt{lista\_espera\_seccion} y verificar que pasan solos a \texttt{INSCRITO}. \\
+\hline
+
+\multicolumn{5}{|l|}{\cellcolor{angelHeader}\textbf{\textcolor{unjbgNavy}{SUB-BLOQUE 3.3 (ÁNGEL): MÓDULO DE RECTIFICACIÓN DE MATRÍCULA Y STEPPER DE 4 OPORTUNIDADES (\texttt{RectificationController.php})}}} \\
+\hline
+
+A7 & \texttt{fn\_contar\_rectificaciones\_mat}\newline \objFunc\newline +\newline \texttt{sp\_solicitar\_rectificacion}\newline \texttt{sp\_aprobar\_rectificacion}\newline \texttt{sp\_rechazar\_rectificacion}\newline \texttt{v\_rectificaciones\_pendientes} & \stModif & 
+\textbf{Implementados en \texttt{03\_procedures/05\_rectificaciones.sql} (Ampliar):}
+1) Crear la función \texttt{fn\_contar\_rectificaciones\_mat(p\_id\_matricula)} que cuenta cuántas solicitudes (\texttt{SOLICITADO} o \texttt{APROBADO}) tiene la matrícula en el semestre.
+2) En \texttt{sp\_solicitar\_rectificacion}, agregar al inicio la validación: si \texttt{fn\_contar\_rectificaciones\_mat(p\_id\_matricula) >= 4}, devolver \texttt{LIMITE\_RECTIFICACIONES} (respaldando el \textit{Stepper de máximo 4 oportunidades} de la Interfaz 9). & 
+\textbf{En Backend:} Ya conectados en \texttt{RectificationRepository.php} (\texttt{/api/v1/rectification/pendientes}, \texttt{/solicitar}, \texttt{/aprobar}, \texttt{/rechazar}).\newline
+\textbf{Testing independiente:} Enviar una solicitud de rectificación (\texttt{CAMBIO\_SECCION} o \texttt{AGREGAR}), aprobarla con \texttt{POST /api/v1/rectification/aprobar} y comprobar la actualización de créditos y vacantes. \\
+\hline
+
+\end{longtable}
+\normalsize
+
+\end{document}

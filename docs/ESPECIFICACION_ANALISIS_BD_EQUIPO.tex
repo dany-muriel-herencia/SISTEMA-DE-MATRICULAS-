@@ -1,0 +1,369 @@
+\documentclass[10pt,a4paper,landscape]{article}
+
+% =============================================================================
+% PAQUETES
+% =============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=1.1cm, top=1.6cm, bottom=1.6cm]{geometry}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+% =============================================================================
+% PALETA DE COLORES INSTITUCIONAL (UNJBG)
+% =============================================================================
+\definecolor{unjbgNavy}{HTML}{0A2540}
+\definecolor{unjbgBlue}{HTML}{1D4ED8}
+\definecolor{unjbgGold}{HTML}{D4AF37}
+\definecolor{rowAlt}{HTML}{F8FAFC}
+\definecolor{badgeDany}{HTML}{DBEAFE}
+\definecolor{badgeFranklin}{HTML}{DCFCE7}
+\definecolor{badgeJhosep}{HTML}{FEF3C7}
+
+% =============================================================================
+% COMANDOS PARA ETIQUETAS DE OBJETOS SQL E INTEGRANTES
+% =============================================================================
+\newcommand{\objProcTx}{\textbf{\textcolor{unjbgNavy}{PROCEDURE (TRANSACCIÓN)}}}
+\newcommand{\objProcCrud}{\textbf{\textcolor{unjbgBlue}{PROCEDURE (CRUD / LECTURA)}}}
+\newcommand{\objFunc}{\textbf{\textcolor{teal!80!black}{FUNCIÓN ALMACENADA}}}
+\newcommand{\objTrig}{\textbf{\textcolor{orange!80!black}{TRIGGER (DISPARADOR)}}}
+\newcommand{\objView}{\textbf{\textcolor{violet!85!black}{VISTA (VIEW)}}}
+\newcommand{\objCursor}{\textbf{\textcolor{red!75!black}{PROCEDURE + CURSOR + TX}}}
+
+\newcommand{\devDany}{\textbf{\textcolor{unjbgNavy}{Dany Muriel}} \newline {\scriptsize(Lead / QA)}}
+\newcommand{\devFranklin}{\textbf{\textcolor{teal!80!black}{Franklin Anahua}} \newline {\scriptsize(Backend / DB)}}
+\newcommand{\devJhosep}{\textbf{\textcolor{orange!85!black}{Jhosep Arocutipa}} \newline {\scriptsize(Reportes / UI)}}
+
+% =============================================================================
+% ENCABEZADO Y PIE DE PÁGINA
+% =============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{\textcolor{unjbgNavy}{UNJBG - ESIS}} \quad|\quad Sistema de Matrícula (\texttt{bd\_matricula\_universitaria}) — \textbf{Versión Reducida y Optimizada}}
+\fancyhead[R]{\textbf{Distribución por Integrante y Alineación con GitHub Issues (0\% ORM)}}
+\fancyfoot[L]{\footnotesize Repositorio: \texttt{github.com/dany-muriel-herencia/SISTEMA-DE-MATRICULAS-} \quad|\quad Guía de Proyecto Final}
+\fancyfoot[R]{\footnotesize Página \thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\titleformat{\section}{\large\bfseries\color{unjbgNavy}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{unjbgBlue}}{\thesubsection.}{0.5em}{}
+
+\begin{document}
+
+% =============================================================================
+% TÍTULO PRINCIPAL E INTRODUCCIÓN DE LA VERSIÓN REDUCIDA
+% =============================================================================
+\begin{center}
+    {\LARGE \textbf{\textcolor{unjbgNavy}{ARQUITECTURA REDUCIDA DE BASE DE DATOS Y DISTRIBUCIÓN DE TRABAJO POR INTEGRANTE}}}\\[3pt]
+    {\normalsize \textbf{Sistema de Matrícula Universitaria (UNJBG - ESIS) \quad|\quad MySQL 8.0+ \& PHP PDO Nativo (0\% ORM) \quad|\quad Alineado con Issues de GitHub}}\\[4pt]
+\end{center}
+
+\section{Estrategia de Reducción y Aislamiento de Trabajo (Cero Choques en Git / Testing Independiente)}
+
+Para que cada integrante pueda \textbf{programar, probar de principio a fin su parte sin depender ni bloquear a los demás} y sin generar conflictos de \textit{merge} en el repositorio \texttt{SISTEMA-DE-MATRICULAS-}, se redujo el modelo de \textbf{76 a 39 objetos programables} (unificando CRUDs en procedimientos \textit{Upsert} y fusionando vistas operativas con las de reportes) y se dividió en \textbf{3 bloques verticales independientes} que respetan exactamente los \textbf{Issues 01 al 14 de GitHub}:
+
+\vspace{4pt}
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\footnotesize
+\begin{tabular}{|p{4.5cm}|p{3.6cm}|p{9.2cm}|p{7.8cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{Integrante del Equipo}} & 
+\textcolor{white}{\textbf{Issues de GitHub Asignados}} & 
+\textcolor{white}{\textbf{Módulos e Interfaces que Implementa y Testea Solo}} & 
+\textcolor{white}{\textbf{Carga Exacta de Objetos SQL a su Cargo}} \\
+\hline
+\rowcolor{badgeDany}
+\textbf{1. Dany Ronaldo Muriel Herencia}\newline \texttt{@dany-muriel-herencia}\newline {\scriptsize(Tech Lead, QA \& Gatekeeper PRs)} & 
+\texttt{ISSUE-02} (M02)\newline \texttt{ISSUE-04} (M04)\newline \texttt{ISSUE-05} (M05)\newline \texttt{ISSUE-14} (QA) & 
+\textbf{Bloque 1: Seguridad/RBAC, Gestión Curricular y Motor Core de Matrícula.}\newline Interfaces: Seguridad (\texttt{M02}), Gestión Académica y Malla (\texttt{M04}), Motor Transaccional de Matrícula (\texttt{M05}). \textit{Puede testear todo el flujo de matrícula y malla sin esperar a Tesorería ni Reportes.} & 
+\textbf{13 Objetos SQL:}\newline • \textbf{4 Funciones} (Prerrequisitos, Cruce Alumno, Créditos, Suma Créditos)\newline • \textbf{6 Procedures} (Guardar Usuario/Rol, Curso+Malla, Matrícula Completa, Retiro/Anulación, Excepción, Espera)\newline • \textbf{1 Trigger} (Auditoría Usuarios/Roles)\newline • \textbf{2 Vistas} (Seguridad y Malla Curricular) \\
+\hline
+\rowcolor{badgeFranklin}
+\textbf{2. Franklin Cristofier Anahua Cahuachia}\newline \texttt{@franklin-anahua}\newline {\scriptsize(Backend \& Database Engineer)} & 
+\texttt{ISSUE-01} (M01)\newline \texttt{ISSUE-03} (M03)\newline \texttt{ISSUE-07} (M06)\newline \texttt{ISSUE-08} (M07)\newline \texttt{ISSUE-09} (M08)\newline \texttt{ISSUE-11} (M10) & 
+\textbf{Bloque 2: Login, Estudiantes, Cola Admin, Horarios/Aulas, Tesorería y Rectificación.}\newline Interfaces: Login (\texttt{M01}), Estudiantes (\texttt{M03}), Cola en Vivo (\texttt{M06}), Horarios/Aulas (\texttt{M07}), Pagos (\texttt{M08}) y Rectificación (\texttt{M10}). \textit{Trabaja en scripts modulares separados sin tocar el motor de Dany.} & 
+\textbf{18 Objetos SQL:}\newline • \textbf{4 Funciones} (Código Univ., Cruce Aula/Docente, Vacantes, Saldo Deuda)\newline • \textbf{11 Procedures} (Login, Estudiante, Resolución Est., Cola Ingresar/Priorizar, Cola Atender, Aula, Sección/Horario, Cuotas con \textbf{Cursor \#1}, Registrar Pago, Solicitar/Procesar Rectificación)\newline • \textbf{1 Trigger} (Auditoría Estudiantes)\newline • \textbf{2 Vistas} (Cola Turnos y Lista Espera) \\
+\hline
+\rowcolor{badgeJhosep}
+\textbf{3. Jhosep Rodrigo Arocutipa Mamani}\newline \texttt{@jhosep-arocutipa}\newline {\scriptsize(Frontend, Reportes QR \& Actas)} & 
+\texttt{ISSUE-06} (M05-QR)\newline \texttt{ISSUE-10} (M09)\newline \texttt{ISSUE-12} (UI Alumno)\newline \texttt{ISSUE-13} (UI Admin) & 
+\textbf{Bloque 3: Reportes Oficiales (2 pts Guía), Actas con Hash QR, Cierre y Vistas UI.}\newline Interfaces: Centro de Reportes y Analítica (\texttt{M09}), Constancias/Boletas con QR (\texttt{M05-QR}) e integración con Vistas React. \textit{Consume vistas y SPs de lectura/notas sin chocar con las transacciones de Dany ni Franklin.} & 
+\textbf{8 Objetos SQL:}\newline • \textbf{2 Procedures} (Oferta Portal Alumno, Subir Notas Acta + Cierre con \textbf{Cursor \#2})\newline • \textbf{2 Triggers} (Hash QR SHA-256 en Boletas y Auditoría de Notas en Actas)\newline • \textbf{4 Vistas Maestras de Reportes y UI} (Rectificaciones, Padrón+Kárdex, Horarios+Demanda, Nómina+Actas+Finanzas) \\
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{TOTAL VERSIÓN REDUCIDA}} & 
+\textcolor{white}{\textbf{14 Issues Cubiertos}} & 
+\textcolor{white}{\textbf{11 Interfaces (9 Admin + 2 Estudiante) al 100\%}} & 
+\textcolor{white}{\textbf{27 Tablas | 8 Funciones | 19 Procedures (2 Cursores) | 4 Triggers | 8 Vistas = 39 Objetos}} \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+
+% =============================================================================
+% SECCIÓN 2: TABLA DETALLADA DE LAS 8 FUNCIONES ALMACENADAS (fn_*)
+% =============================================================================
+\section{Catálogo Reducido de las 8 Funciones Almacenadas (\texttt{fn\_*})}
+
+Se eliminaron las funciones de constantes fijas y se fusionaron las validaciones redundantes, quedando únicamente \textbf{8 funciones de cálculo real} (4 para \textbf{Dany} y 4 para \textbf{Franklin}):
+
+\footnotesize
+\renewcommand{\arraystretch}{1.32}
+\begin{longtable}{|p{0.5cm}|p{4.8cm}|p{4.3cm}|p{2.3cm}|p{2.2cm}|p{2.6cm}|p{8.5cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre de la Función}} & 
+\textcolor{white}{\textbf{Parámetros de Entrada}} & 
+\textcolor{white}{\textbf{Retorno}} & 
+\textcolor{white}{\textbf{Issue GitHub}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Qué Hace Exactamente la Función y Qué Fusiona}} \\
+\hline
+\endfirsthead
+\hline
+\endlastfoot
+
+01 & \texttt{fn\_validar\_prerrequisitos} & \texttt{(p\_id\_estudiante, p\_id\_curso)} & \texttt{TINYINT(1)} & \texttt{ISSUE-04}\newline \texttt{ISSUE-05} & \devDany & \textbf{Fusiona validación de plan + prerrequisitos:} Verifica primero que el curso pertenezca al \texttt{id\_plan} del alumno en \texttt{malla\_curricular} y luego comprueba que haya aprobado ($\ge 10.50$) todos sus cursos requisito en períodos \texttt{CERRADO}s (o convalidados). Retorna \texttt{1} si cumple todo y \texttt{0} si no. \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{fn\_detectar\_cruce\_horario} & \texttt{(p\_id\_matricula, p\_id\_seccion)} & \texttt{TINYINT(1)} & \texttt{ISSUE-05} & \devDany & Compara los bloques horarios (\texttt{dia\_semana}, \texttt{hora\_inicio}, \texttt{hora\_fin}) de la sección candidata contra todas las secciones ya \texttt{INSCRITO}s en esa matrícula. Retorna \texttt{1} si hay solapamiento horario (\texttt{A1 < B2 AND A2 > B1}) y \texttt{0} si no hay cruce. \\
+\hline
+03 & \texttt{fn\_creditos\_permitidos} & \texttt{(p\_id\_estudiante, p\_id\_periodo)} & \texttt{TINYINT UNSIGNED} & \texttt{ISSUE-05} & \devDany & \textbf{Fusiona límite base (22) + créditos extra (+4):} Evalúa si el estudiante tiene \texttt{promedio\_semestre\_anterior >= 14.00} o una resolución \texttt{AMPLIACION\_CREDITOS} vigente en el año del período. Si califica, retorna \texttt{26} créditos; de lo contrario, retorna el límite regular de \texttt{22} créditos. \\
+\hline
+\rowcolor{rowAlt}
+04 & \texttt{fn\_calcular\_creditos\_matricula} & \texttt{(p\_id\_matricula)} & \texttt{SMALLINT UNSIGNED} & \texttt{ISSUE-05} & \devDany & Suma en tiempo real los créditos de todas las asignaturas con estado \texttt{INSCRITO} en \texttt{detalle\_matricula} para validar que \texttt{creditos\_actuales + creditos\_curso <= fn\_creditos\_permitidos} y auditar \texttt{total\_creditos}. \\
+\hline
+05 & \texttt{fn\_generar\_codigo\_univ} & \texttt{(p\_anio\_ingreso)} & \texttt{VARCHAR(15)} & \texttt{ISSUE-03} & \devFranklin & Calcula el siguiente correlativo numérico del año de ingreso en \texttt{estudiantes} y retorna el código universitario oficial con formato \texttt{YYYY-NNNNNN} (ej. \texttt{2026-119011}). \\
+\hline
+\rowcolor{rowAlt}
+06 & \texttt{fn\_detectar\_cruce\_aula\_docente} & \texttt{(p\_id\_periodo, p\_id\_aula, p\_id\_docente, p\_dia, p\_ini, p\_fin, p\_id\_sec\_ignorar)} & \texttt{TINYINT(1)} & \texttt{ISSUE-08} & \devFranklin & \textbf{Fusiona cruce de aula + cruce de docente en 1 sola función:} Verifica en \texttt{secciones} y \texttt{horarios\_seccion} del período si en ese día y franja horaria ya está ocupada el aula o el docente. Retorna \texttt{0} si ambos están libres, \texttt{1} si hay cruce de aula física y \texttt{2} si hay cruce de docente. \\
+\hline
+07 & \texttt{fn\_vacantes\_disponibles} & \texttt{(p\_id\_seccion)} & \texttt{INT} & \texttt{ISSUE-07}\newline \texttt{ISSUE-08} & \devFranklin & Calcula en vivo los cupos disponibles de una sección mediante \texttt{GREATEST((vacantes\_total + vacantes\_extra) - vacantes\_ocupadas, 0)}. Retorna \texttt{NULL} si la sección no existe. \\
+\hline
+\rowcolor{rowAlt}
+08 & \texttt{fn\_calcular\_saldo\_deuda} & \texttt{(p\_id\_deuda)} & \texttt{DECIMAL(8,2)} & \texttt{ISSUE-09} & \devFranklin & Resta al importe original de \texttt{deudas\_estudiante.monto} la suma de todos los abonos registrados en \texttt{pagos} para esa deuda, devolviendo el saldo exacto pendiente de pago. \\
+\hline
+\end{longtable}
+\normalsize
+
+\newpage
+
+% =============================================================================
+% SECCIÓN 3: TABLA DETALLADA DE LOS 19 PROCEDIMIENTOS ALMACENADOS (sp_*)
+% =============================================================================
+\section{Catálogo Reducido de los 19 Procedimientos Almacenados (\texttt{sp\_*})}
+
+Los 43 procedimientos anteriores se compactaron en \textbf{19 procedimientos de alto impacto} (6 para \textbf{Dany}, 11 para \textbf{Franklin} y 2 para \textbf{Jhosep}). Cada integrante trabaja sobre archivos SQL separados en \texttt{database/03\_procedures/}:
+
+\footnotesize
+\renewcommand{\arraystretch}{1.28}
+\begin{longtable}{|p{0.5cm}|p{4.8cm}|p{3.3cm}|p{1.9cm}|p{2.5cm}|p{4.2cm}|p{8.0cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre del Procedimiento (\texttt{sp\_*})}} & 
+\textcolor{white}{\textbf{Tipo de Objeto}} & 
+\textcolor{white}{\textbf{Issue Git}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Tablas que Manipula}} & 
+\textcolor{white}{\textbf{Qué Hace Exactamente y Qué Métodos Unifica}} \\
+\hline
+\endfirsthead
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre del Procedimiento (\texttt{sp\_*})}} & 
+\textcolor{white}{\textbf{Tipo de Objeto}} & 
+\textcolor{white}{\textbf{Issue Git}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Tablas que Manipula}} & 
+\textcolor{white}{\textbf{Qué Hace Exactamente y Qué Métodos Unifica}} \\
+\hline
+\endhead
+\hline
+\endlastfoot
+
+% --- BLOQUE DANY (6 SPs) ---
+\multicolumn{7}{|l|}{\cellcolor{badgeDany}\textbf{\textcolor{unjbgNavy}{PARTE A: PROCEDIMIENTOS A CARGO DE DANY MURIEL (6 SPs — Seguridad RBAC, Malla Curricular y Motor Transaccional de Matrícula)}}} \\
+\hline
+
+01 & \texttt{sp\_guardar\_usuario\_seguridad} & \objProcCrud & \texttt{ISSUE-02} & \devDany & \texttt{usuarios}, \texttt{roles}, \texttt{auditoria} & \textbf{Unifica 4 SPs en 1:} Si \texttt{p\_id\_usuario IS NULL}, crea un nuevo usuario validando DNI, código y correo (\texttt{CU-04}). Si ya existe, actualiza sus datos, cambia su \texttt{id\_rol} (\texttt{CU-05}), cambia su estado en el switch (\texttt{ACTIVO}/\texttt{INACTIVO}/\texttt{BLOQUEADO} — \texttt{CU-06}) o restablece su contraseña (\texttt{CU-03}) reseteando \texttt{intentos\_fallidos = 0}. \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{sp\_guardar\_estructura\_academica} & \objProcTx & \texttt{ISSUE-04} & \devDany & \texttt{facultades}, \texttt{escuelas\_profesionales}, \texttt{planes\_estudio}, \texttt{cursos}, \texttt{malla\_curricular}, \texttt{prerrequisitos}, \texttt{periodos\_academicos} & \textbf{Unifica los CRUDs de Gestión Académica (\texttt{CU-12} a \texttt{CU-15}):} Permite registrar/editar planes, períodos y cursos ubicándolos en su ciclo dentro de \texttt{malla\_curricular} y asignando sus \texttt{prerrequisitos} en una transacción que valida que el requisito pertenezca a un ciclo inferior. \\
+\hline
+03 & \texttt{sp\_registrar\_matricula\_completa} & \objProcTx \newline {\scriptsize(\textbf{TX-01 Maestra})} & \texttt{ISSUE-05} & \devDany & \texttt{cola\_matricula}, \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{deudas\_estudiante}, \texttt{ficha\_medica}, \texttt{excepciones\_matricula}, \texttt{auditoria} & \textbf{Unifica Matrícula Alumno + Matrícula Manual Admin (\texttt{CU-23, CU-44, CU-45, CU-46}):} 1) Si es alumno valida turno \texttt{EN\_TURNO}, cero deuda vencida y apto médico (si es Admin con \texttt{p\_numero\_rd}, aplica bypass de deuda/médico/cruce/sobrecupo); 2) Recorre la lista de secciones en \textbf{orden ascendente} bloqueando con \texttt{FOR UPDATE}; 3) Valida vacantes, \texttt{fn\_validar\_prerrequisitos}, \texttt{fn\_detectar\_cruce\_horario} y \texttt{fn\_creditos\_permitidos}; 4) Inscribe cursos, descuenta vacantes, emite constancia, cierra turno en cola y hace \texttt{COMMIT} (o \texttt{ROLLBACK} total si falla un curso). \\
+\hline
+\rowcolor{rowAlt}
+04 & \texttt{sp\_retirar\_curso\_o\_anular} & \objProcTx \newline {\scriptsize(\textbf{TX-06})} & \texttt{ISSUE-05} & \devDany & \texttt{matriculas}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{lista\_espera\_seccion}, \texttt{auditoria} & \textbf{Unifica Retiro de Curso + Anulación de Matrícula + Promoción de Lista de Espera:} Si recibe un \texttt{p\_id\_seccion}, retira ese curso, resta créditos y libera 1 vacante. Si \texttt{p\_id\_seccion IS NULL} (con Admin), retira todos los cursos y marca la matrícula \texttt{ANULADA}. En ambos casos, por cada vacante liberada \textbf{promueve e inscribe automáticamente al 1ro en espera} de \texttt{lista\_espera\_seccion}. \\
+\hline
+05 & \texttt{sp\_aplicar\_excepcion\_matricula} & \objProcTx & \texttt{ISSUE-05}\newline \texttt{ISSUE-07} & \devDany & \texttt{excepciones\_matricula}, \texttt{matriculas}, \texttt{auditoria} & Registra una Resolución Directoral/Decanal en \texttt{excepciones\_matricula} sobre una matrícula existente y activa el beneficio autorizado (\texttt{CREDITOS\_EXTRAS}, \texttt{CRUCE\_HORARIO}, \texttt{REQUISITO\_MEDICO} o \texttt{DEUDA\_PENDIENTE}). \\
+\hline
+\rowcolor{rowAlt}
+06 & \texttt{sp\_espera\_gestionar} & \objProcTx & \texttt{ISSUE-05} & \devDany & \texttt{lista\_espera\_seccion}, \texttt{secciones}, \texttt{matriculas} & \textbf{Unifica Cola 2 (Lista de Espera por sección llena):} Según \texttt{p\_accion} (\texttt{'INSCRIBIR'} o \texttt{'CANCELAR'}), anota al alumno en orden FIFO cuando una sección tiene 0 vacantes (validando antes que cumpla prerrequisitos) o cancela su espera. \\
+\hline
+
+% --- BLOQUE FRANKLIN (11 SPs) ---
+\multicolumn{7}{|l|}{\cellcolor{badgeFranklin}\textbf{\textcolor{unjbgNavy}{PARTE B: PROCEDIMIENTOS A CARGO DE FRANKLIN ANAHUA (11 SPs — Login, Estudiantes, Cola Admin, Horarios, Pagos y Rectificación)}}} \\
+\hline
+
+07 & \texttt{sp\_validar\_login} & \objProcTx & \texttt{ISSUE-01} & \devFranklin & \texttt{usuarios}, \texttt{roles}, \texttt{estudiantes}, \texttt{auditoria} & Autentica al Estudiante o Administrador (\texttt{CU-01}). Bloquea fila con \texttt{FOR UPDATE}: si falla la clave, incrementa \texttt{intentos\_fallidos} y al 3er intento cambia \texttt{estado = 'BLOQUEADO'}. Si acierta, reinicia intentos a 0, actualiza \texttt{ultimo\_acceso} y devuelve los datos de sesión. \\
+\hline
+\rowcolor{rowAlt}
+08 & \texttt{sp\_guardar\_estudiante\_ficha} & \objProcTx & \texttt{ISSUE-03} & \devFranklin & \texttt{usuarios}, \texttt{estudiantes}, \texttt{ficha\_medica}, \texttt{auditoria} & \textbf{Unifica Alta y Edición de Estudiante + Ficha Médica (\texttt{CU-08, CU-16}):} Si es nuevo, usa \texttt{fn\_generar\_codigo\_univ} para crear usuario, expediente en \texttt{estudiantes} y su \texttt{ficha\_medica} en una sola transacción. Si ya existe, actualiza sus datos y su aptitud médica (\texttt{apto\_medico}). \\
+\hline
+09 & \texttt{sp\_aplicar\_resolucion\_estudiante} & \objProcTx & \texttt{ISSUE-03} & \devFranklin & \texttt{resoluciones\_estudiante}, \texttt{estudiantes}, \texttt{auditoria} & Cubre los 3 botones de movilidad del Directorio de Estudiantes: registra el documento en \texttt{resoluciones\_estudiante} y actualiza en \texttt{estudiantes} el \textbf{Cambio de Carrera/Plan}, \textbf{Suspensión/Retiro} o pase a \textbf{Egresado}. \\
+\hline
+\rowcolor{rowAlt}
+10 & \texttt{sp\_cola\_ingresar\_o\_priorizar} & \objProcTx \newline {\scriptsize(\textbf{TX-04})} & \texttt{ISSUE-07} & \devFranklin & \texttt{cola\_matricula}, \texttt{estudiantes}, \texttt{auditoria} & \textbf{Unifica Ingreso a Cola + Botón ``Priorizar Turno'' (\texttt{CU-38, CU-40}):} Si lo invoca el alumno, le asigna turno en \texttt{cola\_matricula} (priorizando automáticamente si su promedio es $\ge 14.00$). Si lo invoca el Admin, cambia \texttt{priorizado = 1} al alumno seleccionado para atención inmediata. \\
+\hline
+11 & \texttt{sp\_cola\_atender\_o\_finalizar} & \objProcTx \newline {\scriptsize(\textbf{TX-04})} & \texttt{ISSUE-07} & \devFranklin & \texttt{cola\_matricula}, \texttt{auditoria} & \textbf{Unifica Atención, Finalización, Abandono y Expiración de Cola:} Según \texttt{p\_accion}, pasa al siguiente en espera a \texttt{EN\_TURNO} (\texttt{priorizado DESC, posicion ASC}), marca el turno como \texttt{FINALIZADO}/\texttt{ABANDONADO} o expira turnos inactivos. \\
+\hline
+\rowcolor{rowAlt}
+12 & \texttt{sp\_guardar\_aula} & \objProcCrud & \texttt{ISSUE-08} & \devFranklin & \texttt{aulas}, \texttt{auditoria} & Crea o edita aulas físicas y laboratorios (\texttt{CU-32}) configurando tipo (\texttt{TEORIA}, \texttt{LABORATORIO}), \texttt{aforo\_maximo} normado RN-07, equipamiento y estado operativo. \\
+\hline
+13 & \texttt{sp\_guardar\_seccion\_horario} & \objProcTx & \texttt{ISSUE-07}\newline \texttt{ISSUE-08} & \devFranklin & \texttt{secciones}, \texttt{horarios\_seccion}, \texttt{aulas}, \texttt{lista\_espera\_seccion} & \textbf{Unifica Programación de Horarios + Gestión de Vacantes Extra (\texttt{CU-33, CU-43}):} Crea/edita una sección, asigna o elimina bloques en \texttt{horarios\_seccion} validando con \texttt{fn\_detectar\_cruce\_aula\_docente} que no exista choque de aula ni docente, y permite ampliar \texttt{vacantes\_extra} (promoviendo la lista de espera si se abren cupos). \\
+\hline
+\rowcolor{rowAlt}
+14 & \texttt{sp\_generar\_cuotas\_o\_concepto} & \objCursor \newline {\scriptsize(\textbf{CURSOR \#1})} & \texttt{ISSUE-09} & \devFranklin & \texttt{conceptos\_pago}, \texttt{deudas\_estudiante}, \texttt{estudiantes}, \texttt{auditoria} & \textbf{Unifica Catálogo TUPA (\texttt{CU-43}) + Generación Masiva de Cuotas con CURSOR (\texttt{CU-44}):} Permite guardar un concepto TUPA o ejecutar el \textbf{\texttt{CURSOR} \texttt{cur\_estudiantes\_cuotas}} que recorre a todos los alumnos regulares activos y les emite su deuda de matrícula del semestre. \\
+\hline
+15 & \texttt{sp\_registrar\_pago} & \objProcTx \newline {\scriptsize(\textbf{TX-03})} & \texttt{ISSUE-09} & \devFranklin & \texttt{deudas\_estudiante}, \texttt{pagos}, \texttt{comprobantes}, \texttt{auditoria} & Cobra una obligación en ventanilla, banco o caja virtual (\texttt{CU-45, CU-29}). Bloquea la deuda (\texttt{FOR UPDATE}), inserta en \texttt{pagos}, recalcula el saldo con \texttt{fn\_calcular\_saldo\_deuda}, actualiza el estado a \texttt{PAGADO} o \texttt{FRACCIONADO} y emite la boleta \texttt{B001-XXXXXX} (cuyo QR se genera por trigger). \\
+\hline
+\rowcolor{rowAlt}
+16 & \texttt{sp\_solicitar\_rectificacion} & \objProcTx & \texttt{ISSUE-11} & \devFranklin & \texttt{rectificaciones}, \texttt{detalle\_rectificacion}, \texttt{auditoria} & Registra la solicitud de rectificación (\texttt{RETIRO}, \texttt{AGREGAR}, \texttt{CAMBIO\_SECCION}) validando la ventana de fechas y verificando que el alumno no supere el límite normativo de \textbf{4 oportunidades por semestre} del Stepper. \\
+\hline
+17 & \texttt{sp\_procesar\_rectificacion} & \objProcTx \newline {\scriptsize(\textbf{TX-02})} & \texttt{ISSUE-11} & \devFranklin & \texttt{rectificaciones}, \texttt{detalle\_rectificacion}, \texttt{detalle\_matricula}, \texttt{secciones}, \texttt{matriculas} & \textbf{Unifica Aprobar + Rechazar Rectificación:} Si \texttt{p\_decision = 'RECHAZAR'}, marca la solicitud como \texttt{RECHAZADO}. Si es \texttt{'APROBAR'}, ejecuta en una sola transacción ACID todas las bajas y altas ajustando vacantes y créditos (con \texttt{ROLLBACK} total si falla algún movimiento). \\
+\hline
+
+% --- BLOQUE JHOSEP (2 SPs) ---
+\multicolumn{7}{|l|}{\cellcolor{badgeJhosep}\textbf{\textcolor{unjbgNavy}{PARTE C: PROCEDIMIENTOS A CARGO DE JHOSEP AROCUTIPA (2 SPs — Oferta Portal Estudiante, Calificaciones de Actas y Cierre con Cursor)}}} \\
+\hline
+
+18 & \texttt{sp\_listar\_oferta\_estudiante} & \objProcCrud & \texttt{ISSUE-12}\newline \texttt{ISSUE-06} & \devJhosep & \texttt{secciones}, \texttt{cursos}, \texttt{malla\_curricular}, \texttt{horarios\_seccion}, \texttt{matriculas} & Consulta maestra para el Portal Estudiante: devuelve su matrícula activa (para la Constancia QR) y el catálogo de secciones de su plan en el semestre indicando vacantes libres, horarios y si cumple prerrequisitos. \\
+\hline
+\rowcolor{rowAlt}
+19 & \texttt{sp\_registrar\_notas\_y\_cierre} & \objCursor \newline {\scriptsize(\textbf{TX-05 + CURSOR \#2})} & \texttt{ISSUE-10} & \devJhosep & \texttt{detalle\_matricula}, \texttt{estudiantes}, \texttt{periodos\_academicos}, \texttt{cola\_matricula}, \texttt{lista\_espera\_seccion} & \textbf{Unifica Subida de Notas de Actas (\texttt{CU-51}) + Cierre de Semestre con CURSOR:} Permite registrar/actualizar \texttt{nota\_teoria}, \texttt{nota\_practica} y \texttt{nota\_final} para las Actas Oficiales, y al cerrar el semestre ejecuta el \textbf{\texttt{CURSOR} \texttt{cur\_cierre\_estudiantes}} que recalcula \texttt{PPS}, \texttt{PPA}, créditos aprobados, actualiza estado académico (\texttt{REGULAR}/\texttt{OBSERVADO}/\texttt{EGRESADO}) y marca el período \texttt{CERRADO}. \\
+\hline
+
+\end{longtable}
+\normalsize
+
+\newpage
+
+% =============================================================================
+% SECCIÓN 4: TABLA DETALLADA DE LOS 4 TRIGGERS, 2 CURSORES Y 8 VISTAS
+% =============================================================================
+\section{Catálogo Reducido de los 4 Triggers (\texttt{trg\_*}), 2 Cursores y 8 Vistas Polivalentes (\texttt{v\_*})}
+
+\subsection{Los 4 Triggers (Disparadores Automáticos — Distribuidos sin choques)}
+\footnotesize
+\renewcommand{\arraystretch}{1.28}
+\begin{longtable}{|p{0.5cm}|p{5.0cm}|p{2.8cm}|p{3.2cm}|p{2.0cm}|p{2.5cm}|p{9.2cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre del Trigger}} & 
+\textcolor{white}{\textbf{Momento/Evento}} & 
+\textcolor{white}{\textbf{Tabla Asociada}} & 
+\textcolor{white}{\textbf{Issue Git}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Qué Hace Exactamente el Trigger}} \\
+\hline
+\endfirsthead
+\hline
+\endlastfoot
+
+01 & \texttt{trg\_usuarios\_auditoria\_upd} & \texttt{AFTER UPDATE} & \texttt{usuarios} & \texttt{ISSUE-02} & \devDany & Detecta cambios en \texttt{id\_rol} o \texttt{estado} (\texttt{ACTIVO}/\texttt{INACTIVO}/\texttt{BLOQUEADO}) e inserta automáticamente en \texttt{auditoria} los valores \texttt{OLD} y \texttt{NEW}. \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{trg\_estudiantes\_audit\_upd} & \texttt{AFTER UPDATE} & \texttt{estudiantes} & \texttt{ISSUE-03} & \devFranklin & Detecta cambios en \texttt{estado\_academico}, \texttt{id\_plan}, \texttt{promedio\_ponderado} o \texttt{creditos\_aprobados} y guarda la traza en \texttt{auditoria}. \\
+\hline
+03 & \texttt{trg\_comprobantes\_hash\_qr} & \texttt{BEFORE INSERT} & \texttt{comprobantes} & \texttt{ISSUE-06}\newline \texttt{ISSUE-09} & \devJhosep & Calcula y asigna automáticamente el hash criptográfico \texttt{SHA2(..., 256)} en \texttt{NEW.hash\_qr} para el código QR de cada boleta emitida. \\
+\hline
+\rowcolor{rowAlt}
+04 & \texttt{trg\_detalle\_mat\_audit\_notas} & \texttt{AFTER UPDATE} & \texttt{detalle\_matricula} & \texttt{ISSUE-10} & \devJhosep & Detecta cualquier modificación en \texttt{nota\_teoria}, \texttt{nota\_practica} o \texttt{nota\_final} y registra en \texttt{auditoria} la nota anterior y la nueva. \\
+\hline
+\end{longtable}
+\normalsize
+
+\vspace{2pt}
+\subsection{Los 2 Cursores Explícitos (\texttt{DECLARE CURSOR FOR})}
+\footnotesize
+\renewcommand{\arraystretch}{1.28}
+\begin{longtable}{|p{0.5cm}|p{4.8cm}|p{4.8cm}|p{2.0cm}|p{2.5cm}|p{10.6cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre del Cursor}} & 
+\textcolor{white}{\textbf{Procedimiento Contenedor}} & 
+\textcolor{white}{\textbf{Issue Git}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Qué Recorre el Cursor y Qué Problema Resuelve}} \\
+\hline
+\endfirsthead
+\hline
+\endlastfoot
+
+01 & \texttt{cur\_estudiantes\_cuotas} & \texttt{sp\_generar\_cuotas\_o\_concepto} & \texttt{ISSUE-09} & \devFranklin & Recorre a todos los estudiantes activos (\texttt{REGULAR} u \texttt{OBSERVADO}) y les genera en lote su obligación de pago de matrícula en \texttt{deudas\_estudiante} (\texttt{CU-44}). \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{cur\_cierre\_estudiantes} & \texttt{sp\_registrar\_notas\_y\_cierre} & \texttt{ISSUE-10} & \devJhosep & Recorre a los estudiantes matriculados al cierre del semestre (\texttt{TX-05}) para actualizar su \texttt{ciclo\_actual} y cambiar su estado a \texttt{OBSERVADO} o \texttt{EGRESADO} según sus créditos y promedio. \\
+\hline
+\end{longtable}
+\normalsize
+
+\vspace{2pt}
+\subsection{Las 8 Vistas Polivalentes (Alimentan las 11 Pantallas UI y los Reportes Oficiales de 2 Puntos)}
+\footnotesize
+\renewcommand{\arraystretch}{1.26}
+\begin{longtable}{|p{0.5cm}|p{5.0cm}|p{3.8cm}|p{2.0cm}|p{2.5cm}|p{11.4cm}|}
+\hline
+\rowcolor{unjbgNavy}
+\textcolor{white}{\textbf{N°}} & 
+\textcolor{white}{\textbf{Nombre de la Vista (\texttt{v\_*})}} & 
+\textcolor{white}{\textbf{Pantallas / Reportes}} & 
+\textcolor{white}{\textbf{Issue Git}} & 
+\textcolor{white}{\textbf{Responsable}} & 
+\textcolor{white}{\textbf{Qué Vistas Antiguas Unifica y Qué Devuelve}} \\
+\hline
+\endfirsthead
+\hline
+\endlastfoot
+
+01 & \texttt{v\_usuarios\_seguridad} & Seguridad (\texttt{M02}) & \texttt{ISSUE-02} & \devDany & Devuelve la lista de usuarios con su rol, estado, último acceso y última operación registrada en \texttt{auditoria}, además de servir para los 4 KPIs de seguridad. \\
+\hline
+\rowcolor{rowAlt}
+02 & \texttt{v\_malla\_curricular\_detalle} & Gestión Académica (\texttt{M04}) & \texttt{ISSUE-04} & \devDany & Devuelve los cursos de cada plan agrupados por ciclo (I al X) con horas, créditos y sus prerrequisitos concatenados con \texttt{GROUP\_CONCAT}. \\
+\hline
+03 & \texttt{v\_cola\_matricula} & Cola en Vivo (\texttt{M06} - Cola 1) & \texttt{ISSUE-07} & \devFranklin & Muestra la cola sincrónica de turnos en vivo, posición, prioridad por PPA y minutos de espera calculados con \texttt{TIMESTAMPDIFF}. \\
+\hline
+\rowcolor{rowAlt}
+04 & \texttt{v\_lista\_espera} & Espera (\texttt{M05/M06} - Cola 2) & \texttt{ISSUE-07} & \devFranklin & Muestra los estudiantes en lista de espera por cada sección sin vacantes, ordenados por llegada FIFO. \\
+\hline
+05 & \texttt{v\_rectificaciones\_pendientes} & Rectificación (\texttt{M10} - Cola 3) & \texttt{ISSUE-11}\newline \texttt{ISSUE-13} & \devJhosep & Muestra la cola FIFO de solicitudes de rectificación pendientes numeradas con \texttt{ROW\_NUMBER() OVER (...)}. \\
+\hline
+\rowcolor{rowAlt}
+06 & \texttt{v\_padron\_y\_kardex\_estudiantes} & Estudiantes (\texttt{M03}) + \textbf{Reporte Padrón (\texttt{CU-49})} + \textbf{Kárdex (\texttt{CU-10})} & \texttt{ISSUE-03}\newline \texttt{ISSUE-10} & \devJhosep & \textbf{Unifica 3 vistas en 1:} Alimenta la tabla del Directorio de Estudiantes, el Reporte Oficial de Padrón General exportable a PDF/Excel y el historial de Kárdex con avance porcentual de créditos. \\
+\hline
+07 & \texttt{v\_horarios\_y\_demanda\_secciones} & Horarios (\texttt{M07}) + Vacantes (\texttt{M06}) + \textbf{Reporte Demanda (\texttt{CU-53})} & \texttt{ISSUE-08}\newline \texttt{ISSUE-10} & \devJhosep & \textbf{Unifica 3 vistas en 1:} Alimenta la Grilla Horaria Semanal por Ciclo, la Matriz de Ocupación por Aula, el Semáforo de Vacantes y el Reporte Oficial de Ranking de Sobredemanda ($>100\%$). \\
+\hline
+\rowcolor{rowAlt}
+08 & \texttt{v\_nomina\_actas\_y\_finanzas} & Reportes (\texttt{M09}) + Pagos (\texttt{M08}) + \textbf{Nómina (\texttt{CU-50})} + \textbf{Actas QR (\texttt{CU-51})} & \texttt{ISSUE-09}\newline \texttt{ISSUE-10} & \devJhosep & \textbf{Vista Oficial de Reportes y Caja:} Alimenta la Nómina de Asistencia por Sección (\texttt{Regular}/\texttt{Repitente}), el Acta Oficial de Notas con Hash SHA-256, el Rendimiento (\texttt{CU-54}) y el Estado de Pagos/Morosos (\texttt{CU-55}). \\
+\hline
+\end{longtable}
+\normalsize
+
+\end{document}
